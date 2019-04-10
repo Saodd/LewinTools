@@ -1,0 +1,17 @@
+#python编译文件
+__pycache__
+
+
+#日志/数据文件
+*.log
+*.lg
+*.csv
+*.dat
+*.txt
+*.xlsx
+*.xls
+*.lnk
+*.zip
+*.pdf
+
+
