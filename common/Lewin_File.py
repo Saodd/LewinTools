@@ -10,34 +10,40 @@ import os, sys, re
 from datetime import datetime
 from .Lewin_Logging import Easy_Logging, Lewin_Logging
 
+
 # ————————————————————————————————————————————————————————
 class Lewin_Findfiles:
+    __date__ = "2019.04.10"
+
     def __init__(self, path="", touch=False, logger=None):
-        path = Lewin_Findfiles.easy_path(path, call_back=1) # 读取的是调用位置的所在文件夹
+        path = Lewin_Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
         path = path.strip().rstrip('\\')
         if os.path.isdir(path):
             self.path = path
         elif touch:
             os.makedirs(path)
-            print("[INFO] Created path: %s"%path)
+            print("[INFO] Created path: %s" % path)
             self.path = path
         else:
-            raise Exception("[%s] is not a path. \nMaybe you can use Lewin_Findfiles(path, touch=True)."%path)
+            raise Exception("[%s] is not a path. \nMaybe you can use Lewin_Findfiles(path, touch=True)." % path)
         if logger:
             self.logger = logger
         else:
             self.logger = Easy_Logging()
+
     def __str__(self):
         return self.path
+
     def path(self):
         return self.path
 
-    def all_lastday(self, prefix="^", fmt='%Y%m%d', postfix="$", today:datetime=None, abspath=False, return_time=False):
-        if today==None or today=="":
+    def all_lastday(self, prefix="^", fmt='%Y%m%d', postfix="$", today: datetime = None, abspath=False,
+                    return_time=False):
+        if today == None or today == "":
             today = datetime.now()
-        elif type(today)==str and len(today)==8:
+        elif type(today) == str and len(today) == 8:
             today = datetime.strptime(today, "%Y%m%d")
-        elif type(today)== datetime:
+        elif type(today) == datetime:
             pass
         else:
             raise Exception("wrong input format of arg [today]")
@@ -61,14 +67,16 @@ class Lewin_Findfiles:
 
         if not len(filter_list):
             self.logger.warning("cannot find file named like: %s   in  %s."
-                                %(prefix + "(?P<time>.*?)" + postfix, self.path))
+                                % (prefix + "(?P<time>.*?)" + postfix, self.path))
         filter_list.sort(reverse=True)
         self.filter_list = filter_list
         if return_time:
             return filter_list
         else:
             return [file for timestamp, file in filter_list]
-    def find_lastday(self, prefix="^", fmt='%Y%m%d', postfix="$", today:datetime=None, abspath=False, return_time=False):
+
+    def find_lastday(self, prefix="^", fmt='%Y%m%d', postfix="$", today: datetime = None, abspath=False,
+                     return_time=False):
         """search  prefix+20190127+postfix
             :return:  file = "prefix+20190127+postfix"         """
         result = self.all_lastday(prefix, fmt, postfix, today, abspath, return_time)
@@ -76,15 +84,18 @@ class Lewin_Findfiles:
             return result[0]
         else:
             return None
+
     def iter_lastday(self, prefix="^", fmt='%Y%m%d', postfix="$", today=None, abspath=False):
         self.all_lastday(prefix, fmt, postfix, today, abspath)
         while len(self.filter_list):
             timestamp, file = self.filter_list.pop(0)
             yield file
+
     def next_lastday(self):
         if len(self.filter_list):
             timestamp, file = self.filter_list.pop(0)
             return file
+
     def find_allday(self, prefix="", fmt='%Y%m%d', postfix=""):
         """search  prefix+20190127+postfix
             :return:  file = "prefix+20190127+postfix"         """
@@ -141,34 +152,37 @@ class Lewin_Findfiles:
         path = Lewin_Findfiles.easy_path(path, default_dir=self.path, dirname=dirname)
         archived = []
         for file in self.iter_lastday(prefix, fmt, postfix, today=before, abspath=True):
-            if delete==True:
+            if delete == True:
                 os.remove(file)
                 archived.append([file, "**deleted**"])
-                self.logger.info("delete %s"%(file,))
+                self.logger.info("delete %s" % (file,))
             else:
                 newfile = os.path.join(path, os.path.basename(file))
                 if not os.path.isdir(os.path.dirname(newfile)):
                     os.makedirs(os.path.dirname(newfile))
-                    self.logger.info("makedirs %s"%os.path.dirname(newfile))
+                    self.logger.info("makedirs %s" % os.path.dirname(newfile))
                 shutil.move(file, newfile)
                 archived.append([file, newfile])
-                self.logger.info("move %s to %s"%(file, newfile))
+                self.logger.info("move %s to %s" % (file, newfile))
         return archived
 
     def join_touch(self, filename):
         path_file = os.path.join(self.path, filename)
         if not (filename in os.listdir(self.path)):
             open(path_file, 'w').close()
-            self.logger.info("Created file: %s"%path_file)
+            self.logger.info("Created file: %s" % path_file)
         return path_file
+
     def join(self, filename):
         return os.path.join(self.path, filename)
+
     def join_exist(self, filename):
         path_file = os.path.join(self.path, filename)
         if not (filename in os.listdir(self.path)):
-            raise Exception("File doesn't EXIST: %s"%path_file)
+            raise Exception("File doesn't EXIST: %s" % path_file)
         return path_file
-    def isfile(self, filename:str):
+
+    def isfile(self, filename: str):
         path_file = self.join(filename=filename)
         return os.path.isfile(path_file)
 
@@ -189,6 +203,7 @@ class Lewin_Findfiles:
             df.to_csv(txt_path, index=False)
 
         return txt_path
+
     @staticmethod
     def easy_path(path="", dirname="", filename="", default_dir="", default_file="", call_back=0):
         '''
@@ -199,6 +214,7 @@ class Lewin_Findfiles:
         :param default_file:    'log%s.log'%datetime.now().strftime("%Y%m%d")
         :return:
         '''
+
         # TODO: 这里默认了带'.'的都是文件（而不会是文件夹），会有隐含的bug。
         def replace_dot(path, default_dir):
             dot_num = len(path) - len(path.lstrip('.'))
@@ -206,23 +222,24 @@ class Lewin_Findfiles:
                 default_dir = os.path.dirname(default_dir)
             path = os.path.join(default_dir, path.lstrip('.')[1:])
             return path
-        if not default_dir: default_dir = os.path.dirname(sys._getframe(1+call_back).f_code.co_filename)
+
+        if not default_dir: default_dir = os.path.dirname(sys._getframe(1 + call_back).f_code.co_filename)
         if path:
             if os.path.isabs(path):
-                if "." in os.path.basename(path): # 如果是绝对路径，且以file名结尾
+                if "." in os.path.basename(path):  # 如果是绝对路径，且以file名结尾
                     path = path
                 else:  # 如果是绝对路径，且以dir名结尾
                     path = os.path.join(path, default_file)
             elif path.startswith("."):
                 # 如果是相对路径"../something.txt"，先替换前面的"."
                 path = replace_dot(path, default_dir)
-                if "." in os.path.basename(path): # 相对路径处理后，且以file名结尾
+                if "." in os.path.basename(path):  # 相对路径处理后，且以file名结尾
                     path = path
                 else:  # 相对路径处理后，且以dir名结尾
                     path = os.path.join(path, default_file)
             else:
                 raise Exception("仅支持[绝对路径]或者[../]相对路径作为参数")
-        else: #如果没有给path，先检查有没有给dirname或者filename
+        else:  # 如果没有给path，先检查有没有给dirname或者filename
             if dirname:
                 if "." in os.path.basename(dirname):
                     raise Exception("dirname参数 不应该 带有'.'号。")
@@ -247,13 +264,15 @@ class Lewin_Findfiles:
 
 # ————————————————————————————————————————————————————————
 class Lewin_Ftp:
-    def __init__(self, host, username, password, logger:Lewin_Logging=None):
-        if logger==None:
+    __date__ = "2019.04.10"
+
+    def __init__(self, host, username, password, logger: Lewin_Logging = None):
+        if logger == None:
             self.logger = Easy_Logging()
         elif isinstance(logger, Lewin_Logging):
             self.logger = logger
         else:
-            raise Exception("wrong logger passed!! U give a %s! pls give None or Lewin_Logging."%type(logger))
+            raise Exception("wrong logger passed!! U give a %s! pls give None or Lewin_Logging." % type(logger))
         import ftplib
         self.ftp = ftplib.FTP(host)
         self.ftp.login(username, password)
@@ -264,7 +283,7 @@ class Lewin_Ftp:
         except:
             pass
 
-    def download(self, path_remote:str, path_local:str):
+    def download(self, path_remote: str, path_local: str):
         self.logger.info(path_local)
         with open(path_local, 'wb') as f:
             self.ftp.retrbinary("RETR %s" % path_remote, f.write)

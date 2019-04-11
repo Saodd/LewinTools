@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
 __date__ = '2019/4/10'
+__version__ = "20190410"
 """
 
 """
@@ -9,9 +10,12 @@ __date__ = '2019/4/10'
 import os, sys
 from .Lewin_Logging import Lewin_Logging, Easy_Logging
 
+
 # ————————————————————————————————————————————————————————
 class Append_Sys_Path:
-    def __init__(self, path, logger:Lewin_Logging=None):
+    __date__ = "2019.04.10"
+
+    def __init__(self, path, logger: Lewin_Logging = None):
         if isinstance(logger, Lewin_Logging):
             self.logger = logger
         else:

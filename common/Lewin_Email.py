@@ -9,6 +9,7 @@ __date__ = '2019/4/10'
 import os, sys, re
 from datetime import datetime
 
+
 # ————————————————————————————————————————————————————————
 class Lewin_Outbox:
     """
@@ -21,6 +22,8 @@ class Lewin_Outbox:
     msg = s.generate_mimetext_html(subject, htmltext, to_addr, toname="", fromname="")  #生成MIMEText文本。也可以自己生成。
     s.send(to_addr, msg)  #传入一个MIMEText文本，发送邮件。
     """
+    __date__ = "2019.04.10"
+
     def __init__(self):
         """        会从当前目录读取配置文件lewin_config.py        """
         from email.mime.text import MIMEText
@@ -38,7 +41,6 @@ class Lewin_Outbox:
         except:
             pass
 
-
     def login(self, account, password, server_addr, server_port=465, name=""):
         """手动设置发件人的邮箱账号、密码、姓名。（用于登录邮箱服务器）"""
         self.FROM_ADDR = account
@@ -52,18 +54,17 @@ class Lewin_Outbox:
         self.server = smtplib.SMTP_SSL(server_addr, server_port)
         self.server.login(self.FROM_ADDR, self.FROM_ADDR_PASSWORD)
 
-
     def generate_mimetext_html(self, subject, htmltext, to_addr, toname="", fromname=""):
         """传入to_addr可以是str，也可以是list。
         返回一个'MIMEText'对象，可以作为参数传递给send()，也可以用在别的地方。"""
         to_addr = self._exam_list(to_addr)
         # 设置邮件正文、标题、发件人、收件人
-        msg = self.MIMEText('<html><body>%s</body></html>'%(htmltext,), 'html', 'utf-8')
+        msg = self.MIMEText('<html><body>%s</body></html>' % (htmltext,), 'html', 'utf-8')
         msg['Subject'] = self.Header(subject, 'utf-8').encode()
         if not fromname:
             fromname = self.FROM_NAME
         msg['From'] = self._format_addr('%s <%s>' % (fromname, self.FROM_ADDR))
-        if len(to_addr)==1:
+        if len(to_addr) == 1:
             msg['To'] = self._format_addr('%s <%s>' % (toname, to_addr[0]))
         else:
             msg['To'] = ','.join(to_addr)
