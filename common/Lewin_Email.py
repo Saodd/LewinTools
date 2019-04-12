@@ -12,17 +12,7 @@ from datetime import datetime
 
 # ————————————————————————————————————————————————————————
 class Lewin_Outbox:
-    """
-    sys.path.append('/home/users/lewin/mycode/Codes_in_Tencent_dev')
-    import Lewin_tools
-    s = Lewin_tools.LewinEmail()  # 实例化一个对象
-    subject = "主题是什么"
-    htmltext = "<html>一个html字符串</html>"
-    to_addr = "lewin.lan@apcapitalinvestment.com"
-    msg = s.generate_mimetext_html(subject, htmltext, to_addr, toname="", fromname="")  #生成MIMEText文本。也可以自己生成。
-    s.send(to_addr, msg)  #传入一个MIMEText文本，发送邮件。
-    """
-    __date__ = "2019.04.10"
+    __date__ = "2019.04.12"
 
     def __init__(self):
         """        会从当前目录读取配置文件lewin_config.py        """
