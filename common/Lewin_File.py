@@ -13,9 +13,9 @@ from .Lewin_Logging import Easy_Logging, Lewin_Logging
 
 # ————————————————————————————————————————————————————————
 class Lewin_Findfiles:
-    __date__ = "2019.04.12"
+    __date__ = "2019.04.13"
 
-    def __init__(self, path: str = "", touch: bool = False, logger: Lewin_Logging = None):
+    def __init__(self, path: str = "", touch: bool = False, logger: [Lewin_Logging] = None):
         path = Lewin_Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
         path = path.strip()
         if logger:
@@ -145,7 +145,36 @@ class Lewin_Findfiles:
         return os.path.isfile(path_file)
 
     @staticmethod
-    def easy_path(path="", dirname="", filename="", default_dir="", default_file="", call_back=0):
+    def replace_dot(path, start_dir: str):
+        dot_num = len(path) - len(path.lstrip('.'))
+        for i in range(dot_num - 1):
+            start_dir = os.path.dirname(start_dir)
+        path = os.path.join(start_dir, path.lstrip("./\\"))
+        return path
+
+    @staticmethod
+    def easy_path(path="", start_dir: str = None, call_back: int = 0):
+        """
+        两个目标：
+        1.找到调用位置程序所在的目录；
+        2.替换前面的dot，转换为绝对路径。
+        """
+        if not start_dir:
+            start_dir = os.path.dirname(sys._getframe(1 + call_back).f_code.co_filename)
+        if path:
+            if path.startswith("."):
+                result = Lewin_Findfiles.replace_dot(path, start_dir)
+            elif os.path.isabs(path):
+                result = path
+            else:
+                msg = "path=[{}], start_dir=[{}], call_back=[{}]".format(path, start_dir, call_back)
+                raise Exception("I dont know what you want: %s" % msg)
+        else:
+            result = start_dir
+        return result
+
+    @staticmethod
+    def easy_path_log(path="", dirname="", filename="", default_dir="", default_file="", call_back=0):
         '''
         :param path:
         :param dirname:
@@ -156,12 +185,6 @@ class Lewin_Findfiles:
         '''
 
         # TODO: 这里默认了带'.'的都是文件（而不会是文件夹），会有隐含的bug。
-        def replace_dot(path, default_dir):
-            dot_num = len(path) - len(path.lstrip('.'))
-            for i in range(dot_num - 1):
-                default_dir = os.path.dirname(default_dir)
-            path = os.path.join(default_dir, path.lstrip("./\\"))
-            return path
 
         if not default_dir: default_dir = os.path.dirname(sys._getframe(1 + call_back).f_code.co_filename)
         if path:
