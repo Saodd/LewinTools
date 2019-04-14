@@ -8,20 +8,19 @@ __create_date__ = '2019/4/10'
 
 import os, re, sys
 from datetime import datetime
-from .Lewin_Logging import Lewin_Logging, Easy_Logging
 
 
 # ————————————————————————————————————————————————————————
 class Lewin_Findfiles:
     __date__ = "2019.04.14"
 
-    def __init__(self, path: str = "", touch: bool = False, logger: [Lewin_Logging] = None) -> None:
+    def __init__(self, path: str = "", touch: bool = False, logger = None) -> None:
         path = Lewin_Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
         path = path.strip()
         if logger:
             self.logger = logger
         else:
-            self.logger = Easy_Logging()
+            self.logger = Easy_Logging_Time()
         if os.path.isdir(path):
             self._path = path
         elif touch:
@@ -175,15 +174,13 @@ class Lewin_Findfiles:
 
 # ————————————————————————————————————————————————————————
 class Lewin_Ftp:
-    __date__ = "2019.04.10"
+    __date__ = "2019.04.14"
 
-    def __init__(self, host, username, password, logger: Lewin_Logging = None):
+    def __init__(self, host, username, password, logger=None):
         if logger == None:
-            self.logger = Easy_Logging()
-        elif isinstance(logger, Lewin_Logging):
-            self.logger = logger
+            self.logger = Easy_Logging_Time()
         else:
-            raise Exception("wrong logger passed!! U give a %s! pls give None or Lewin_Logging." % type(logger))
+            self.logger = logger
         import ftplib
         self.ftp = ftplib.FTP(host)
         self.ftp.login(username, password)
@@ -222,3 +219,22 @@ class Others:
             df.to_csv(txt_path, index=False)
 
         return txt_path
+
+
+class Easy_Logging_Time:
+    __date__ = "2019.04.10"
+
+    def debug(self, s):
+        print("[%s][debug] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def info(self, s):
+        print("[%s][info] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def warning(self, s):
+        print("[%s][warning] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def error(self, s):
+        print("[%s][error] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def critical(self, s):
+        print("[%s][critical] %s" % (datetime.now().strftime("%H:%M:%S"), s))

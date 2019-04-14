@@ -8,18 +8,18 @@ __version__ = "20190410"
 """
 
 import os, sys
-from .Lewin_Logging import Lewin_Logging, Easy_Logging
+from datetime import datetime
 
 
 # ————————————————————————————————————————————————————————
 class Append_Sys_Path:
-    __date__ = "2019.04.10"
+    __date__ = "2019.04.14"
 
-    def __init__(self, path, logger: Lewin_Logging = None):
-        if isinstance(logger, Lewin_Logging):
-            self.logger = logger
+    def __init__(self, path, logger=None):
+        if logger is None:
+            self.logger = Easy_Logging_Time
         else:
-            self.logger = Easy_Logging()
+            self.logger = logger
         if isinstance(path, list):
             self.path = list(set(path))
         else:
@@ -42,3 +42,23 @@ class Append_Sys_Path:
             sys.path.remove(pa)
             self.logger.debug("remove [%s] from sys path." % pa)
         return isinstance(exc_val, TypeError)
+
+
+# ————————————————————————————————————————————————————————
+class Easy_Logging_Time:
+    __date__ = "2019.04.10"
+
+    def debug(self, s):
+        print("[%s][debug] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def info(self, s):
+        print("[%s][info] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def warning(self, s):
+        print("[%s][warning] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def error(self, s):
+        print("[%s][error] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def critical(self, s):
+        print("[%s][critical] %s" % (datetime.now().strftime("%H:%M:%S"), s))

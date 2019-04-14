@@ -12,9 +12,8 @@ from multiprocessing import Process, Queue, Pool, Manager
 import threading
 import requests
 
-from .Lewin_Logging import Lewin_Logging
-from .Lewin_File import Lewin_Findfiles
-
+from LewinTools.common.Lewin_Logging import Lewin_Logging
+from LewinTools.common.Lewin_File import Lewin_Findfiles
 
 # ————————————————————————————————————————————————————————
 class Lewin_Spider:

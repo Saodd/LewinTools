@@ -8,8 +8,8 @@ __date__ = '2019/4/10'
 
 import os, sys
 import pandas as pd
-
-from .Lewin_Logging import Lewin_Logging, Easy_Logging
+from datetime import datetime
+from LewinTools.common.Lewin_Logging import Lewin_Logging
 
 
 # ————————————————————————————————————————————————————————
@@ -17,10 +17,10 @@ class AP_Database:
     """从mysql中直接查询trades数据，等效于在网页上查询。"""
     __date__ = "2019.04.10"
 
-    def __init__(self, db_login_command="", lib="sqlalchemy", logger: Lewin_Logging = None):
+    def __init__(self, db_login_command="", lib="sqlalchemy", logger=None):
         self.lib = lib
         if logger == None:
-            self.logger = Easy_Logging()
+            self.logger = Easy_Logging_Time()
         else:
             self.logger = logger
         if lib == "sqlalchemy":
@@ -174,3 +174,23 @@ class AP_Database:
             db.close()
             logger.info("close mysql connector.")
         return rowcount
+
+
+# ————————————————————————————————————————————————————————
+class Easy_Logging_Time:
+    __date__ = "2019.04.10"
+
+    def debug(self, s):
+        print("[%s][debug] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def info(self, s):
+        print("[%s][info] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def warning(self, s):
+        print("[%s][warning] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def error(self, s):
+        print("[%s][error] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def critical(self, s):
+        print("[%s][critical] %s" % (datetime.now().strftime("%H:%M:%S"), s))
