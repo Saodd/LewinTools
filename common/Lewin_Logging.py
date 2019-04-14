@@ -1,69 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
-__date__ = '2019/4/10'
+__create_date__ = '2019/4/10'
 """
 
 """
 
-import os, sys, time
-from datetime import datetime
+import os, sys, time, re
+from datetime import datetime, timedelta
+
 
 
 # ————————————————————————————————————————————————————————
 class Lewin_Logging:
-    """
-    本模块结构：
-    输入（logging / sys）---->  (Lewin_Logging模块) ---->  输出(handler_file, handler_stdout, ...)
-
-    ——————————————————————用法——————————————————————————————————————
-    1.把sys.stdout和stderr截取一份并复制
-        [用法] logger = Lewin_Logging().catch_sys()
-    2.将所有屏幕输出都导出到文件中（带一个True就会复制屏幕输出）
-        [用法] logger.add_handler_file(path='all_log.txt', level='all')
-    3.把全部日志打印到屏幕上（要显式指定）；把error以上的日志保存到另一个文件中
-        [用法] logger.add_handler_stdout(level='all')
-        [用法] logger.add_handler_file(path='error_log.txt', level='error')
-        [用法] logger.add_handler_file(path='error_log.txt', level='error', fmt="%(message)s")
-    4.生成日志
-        [用法] logger.info("test log info!")
-        [用法] logger.error("test log error!")
-    5.傻瓜操作
-        from lewin_tools import Lewin_Logging
-        logger = Lewin_Logging().catch_sys().add_handler_file().add_handler_stdout()
-        logger.do(function)
-
-    ——————————————————————用法1：老程序改造——————————————————————————————————————
-    只要这一句，就可以将原本所有的屏幕输出导出到文件中。
-    logger = Lewin_Logging().catch_sys().add_handler_file(path='all_log.txt',  level='all')
-    [或者使用默认值，会在 [程序所在目录] 生成log{date}.log文件]
-    logger = Lewin_Logging().catch_sys().add_handler_file()
-    [或者使用偷懒值，会在 [给定目录] 生成log{date}.log文件]
-    logger = Lewin_Logging().catch_sys().add_handler_file("Z:\APMOS\Result\")
-
-    ——————————————————————用法2：新程序使用logging记录分级日志——————————————————————————————————————
-    logger = Lewin_Logging().catch_sys()   # 为了读取Exception信息，依然需要截取sys
-    logger.add_handler_file(path='all_log.txt', level='all')
-    logger.add_handler_stdout(level='all')
-    ......
-    logger.info("log something")
-
-    ——————————————————————常用format参考——————————————————————————————————————
-    "[%(levelname)s]%(datetime)s-%(pathname)s-%(filename)s-%(funcName)s()-%(lineno)d : %(message)s"
-    "[%(levelname)s %(time)s] %(message)s"
-    "%(message)s"
-
-    ——————————————————————注释——————————————————————————————————————
-    <open file object>不需要显式地.close()，python解释器在最后会自动flush+close.
-    """
-
     level_dict = {'all': 0, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5}
     fmt = {'simple': "[%(levelname)s] %(message)s",
            'info': "[%(levelname)s][%(time)s] %(message)s",
            'all': "[%(levelname)s][%(time)s][%(filename)s %(funcName)s()][%(processid)s/%(lineno)d][%(loggername)s] %(message)s",
            'debug': "[%(levelname)s][%(time)s][%(filename)s %(funcName)s()][%(processid)s/%(lineno)d] %(message)s",
            'multiprocess': "[%(levelname)s][%(time)s][PID:%(processid)s] %(message)s"}
-
     __date__ = "2019.04.10"
 
     def __init__(self, get_stdout=True, get_stderr=True, name=None):
@@ -153,7 +108,7 @@ class Lewin_Logging:
         # 默认一天一个日志文件
         default_file = 'log%s.log' % datetime.now().strftime("%Y%m%d")
         default_dir = os.path.dirname(os.path.abspath(sys._getframe(1 + self.if_do).f_code.co_filename))
-        path = Lewin_findfiles.easy_path(path, dirname, filename, default_dir, default_file)
+        path = Lewin_Findfiles.easy_path(path, dirname, filename, default_dir, default_file)
         print(default_dir)
         if not os.path.isdir(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
