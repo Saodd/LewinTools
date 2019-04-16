@@ -43,7 +43,27 @@ class Append_Sys_Path:
             self.logger.debug("remove [%s] from sys path." % pa)
         return isinstance(exc_val, TypeError)
 
+class Keep_Sys_Path:
+    __date__ = "2019.04.16"
 
+    def __init__(self, logger=None):
+        if logger is None:
+            self.logger = Easy_Logging_Time
+        else:
+            self.logger = logger
+
+
+    def __enter__(self):
+        self.path = [x for x in sys.path]
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            sys.path = [x for x in self.path]
+        except Exception as e:
+            self.logger.error("Failed when recovering sys.path !! %s"%e)
+        else:
+            self.logger.debug("Success recover sys.path.")
+        return isinstance(exc_val, TypeError)
 # ————————————————————————————————————————————————————————
 class Easy_Logging_Time:
     __date__ = "2019.04.10"
