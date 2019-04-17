@@ -9,6 +9,7 @@ __create_date__ = '2019/4/13'
 import os
 import sys
 import time
+import shutil
 import unittest
 from datetime import datetime, timedelta
 
@@ -24,7 +25,7 @@ TRY_DIRS = ["E:/lewin/data/test/Lewin_File",
 TEST_DIR = ""
 for path in TRY_DIRS:
     if os.path.exists(path):
-        TEST_DIR = path
+        TEST_DIR = path  # TEST_DIR will be used in Testcase
 
 # ————————————————————————Settings————————————————————————————————
 logger = Easy_Logging_Time()
@@ -42,7 +43,7 @@ ARG_days_after = 1
 class Test__Lewin_Findfiles(unittest.TestCase):
     __date__ = "2019.04.14"
 
-    def test_Date(self):
+    def test__Version_Date(self):
         versions = (Lewin_Findfiles.__date__, Test__Lewin_Findfiles.__date__)
         msg = "Lewin_Findfiles is [%s], but Test is [%s]" % versions
         self.assertEqual(*versions, msg=msg)
@@ -156,11 +157,25 @@ class Test__Lewin_Findfiles(unittest.TestCase):
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__Other_py(self):
-        pass
+        sys.path.insert(0, TEST_DIR)
+        import file__easy_path__Other_py
+        want = TEST_DIR
+        result = file__easy_path__Other_py.test_in_file()
+        mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
+        self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
+
 
 # ————————————————————————————————————————————————————————
 class Environment:
-    def __init__(self):
+    script = """
+from LewinTools import Lewin_Findfiles
+def test_in_file():
+    return Lewin_Findfiles.easy_path(".")
+                        """
+    name_test_py = "file__easy_path__Other_py.py"
+    path_test_py = os.path.join(TEST_DIR, name_test_py)
+
+    def __init__(self, TEST_DIR: str):
         self.files = []
         self.dir = TEST_DIR
         if not self.dir:
@@ -171,41 +186,64 @@ class Environment:
     def __enter__(self):
         if len(os.listdir(self.dir)):
             exit("The testing directory [%s] is not empty!! Please clean it up." % self.dir)
-        print(" Preparing environment ".center(100, '-'))
+        logger.info(" Preparing environment ".center(100, '-'))
+        # prepare for files.
         for arg_dt, arg_fmt in ARGS.items():
             for days in range(ARG_days_before, ARG_days_after + 1):
                 name_file = "Test_{}.testfile".format((arg_dt + timedelta(days)).strftime(arg_fmt))
                 path_file = os.path.join(self.dir, name_file)
                 if os.path.exists(path_file):
-                    print("%s already exist!" % path_file)
+                    logger.warning("%s already exist!" % path_file)
                 else:
                     try:
                         obj_file = open(path_file, 'w')
                     except Exception as e:
-                        print("Failed when creating [%s]: %s" % (path_file, e))
+                        logger.error("Failed when creating [%s]: %s" % (path_file, e))
                     else:
-                        print("Created: %s" % path_file)
+                        logger.info("Created: %s" % path_file)
                         obj_file.close()
                         self.files.append(path_file)
-        print(" Finished preparing environment ".center(100, '-'))
+        # prepare for python file.
+
+        try:
+            with open(Environment.path_test_py, 'w') as f:
+                f.write(Environment.script)
+        except:
+            logger.error("Failed when creating file: %s" % Environment.path_test_py)
+        else:
+            logger.info("Created file: %s" % Environment.path_test_py)
+        logger.info(" Finished preparing environment ".center(100, '-'))
         time.sleep(0.5)  # Special for Pycharm. Coz stderr seems bad in Pycharm-windows.
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         time.sleep(0.5)  # Special for Pycharm. Coz stderr seems bad in Pycharm-windows.
-        print(" Recovering environment ".center(100, '-'))
+        logger.info(" Recovering environment ".center(100, '-'))
+        # clean files.
         while len(self.files):
             path_file = self.files.pop()
             try:
                 os.remove(path_file)
             except Exception as e:
-                print("Failed when deleting [%s]: %s" % (path_file, e))
+                logger.error("Failed when deleting [%s]: %s" % (path_file, e))
             else:
-                print("Deleted: %s" % path_file)
-        print(" Finished recovering environment ".center(100, '-'))
+                logger.info("Deleted: %s" % path_file)
+        # clean python files.
+        try:
+            os.remove(Environment.path_test_py)
+        except:
+            logger.error("Failed when removing file: %s" % Environment.path_test_py)
+        else:
+            logger.info("Removed file: %s" % Environment.path_test_py)
+        try:
+            shutil.rmtree(os.path.join(TEST_DIR, "__pycache__"))
+        except:
+            logger.error("Failed when removing tree: %s" % os.path.join(TEST_DIR, "__pycache__"))
+        else:
+            logger.info("Removed tree: %s" % os.path.join(TEST_DIR, "__pycache__"))
+        logger.info(" Finished recovering environment ".center(100, '-'))
         return isinstance(exc_val, TypeError)
 
 
-
 if __name__ == '__main__':
-    with Environment():
+    with Environment(TEST_DIR):
         unittest.main()
