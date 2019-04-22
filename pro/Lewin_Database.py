@@ -8,16 +8,19 @@ __date__ = '2019/4/10'
 
 import os, sys
 import pandas as pd
+from datetime import datetime
+from LewinTools.common.Lewin_Logging import Lewin_Logging
 
-from .Lewin_Logging import Lewin_Logging, Easy_Logging
 
 # ————————————————————————————————————————————————————————
 class AP_Database:
     """从mysql中直接查询trades数据，等效于在网页上查询。"""
-    def __init__(self, db_login_command="", lib="sqlalchemy", logger:Lewin_Logging=None):
+    __date__ = "2019.04.10"
+
+    def __init__(self, db_login_command="", lib="sqlalchemy", logger=None):
         self.lib = lib
-        if logger==None:
-            self.logger = Easy_Logging()
+        if logger == None:
+            self.logger = Easy_Logging_Time()
         else:
             self.logger = logger
         if lib == "sqlalchemy":
@@ -28,7 +31,6 @@ class AP_Database:
             pass
         else:
             raise Exception("wrong lib name! choose [sqlalchemy, pymysql]")
-
 
     def _default_database(self):
         if self.lib != "sqlalchemy":
@@ -46,6 +48,7 @@ class AP_Database:
         else:
             raise Exception("%s模块无法识别linux/windows环境，无法加载环境变量。" % __file__)
         return MYSQL_apmosdb
+
     def search_ap_code(self, search_value):
         if self.lib != "sqlalchemy":
             raise Exception("wanna use this func, pls set lib as 'sqlalchemy'.")
@@ -53,24 +56,27 @@ class AP_Database:
         command = "SELECT * FROM Trade WHERE ap_code ='%s';" % (search_value,)
         df_search = pd.read_sql_query(command, con=self.ENGINE)
         return df_search
-    def select_as_DataFrame(self, command_str:str):
+
+    def select_as_DataFrame(self, command_str: str):
         """ give a SELECT command, and return a pandas.DataFrame object."""
         if self.lib != "sqlalchemy":
             raise Exception("wanna use this func, pls set lib as 'sqlalchemy'.")
         import pandas as pd
         if not command_str.lower().startswith("select "):
-            raise Exception("Pls starts with 'SELECT ': %s"%command_str)
+            raise Exception("Pls starts with 'SELECT ': %s" % command_str)
         if not command_str.strip().endswith(";"):
             command_str = command_str.strip() + ";"
         self.logger.info(command_str)
         df_search = pd.read_sql_query(command_str, con=self.ENGINE)
         return df_search
-    def pd_to_sql(self, df:pd.DataFrame, cmd):
+
+    def pd_to_sql(self, df: pd.DataFrame, cmd):
         if self.lib != "pymysql":
             raise Exception("wanna use this func, pls set lib as 'pymysql'.")
         return
+
     @staticmethod
-    def insert_df(logger:Lewin_Logging, df_no_dpl:pd.DataFrame, host, user, password, database, table):
+    def insert_df(logger: Lewin_Logging, df_no_dpl: pd.DataFrame, host, user, password, database, table):
         rowcount = 0
         if len(df_no_dpl) == 0:
             logger.warning("0 row to insert!")
@@ -114,7 +120,7 @@ class AP_Database:
             return rowcount
 
         cmd_cols = "({})".format(",".join(list(insert.keys())))
-        cmd_values = "({})".format(",".join(["'%s'"%x for x in insert.values()]))
+        cmd_values = "({})".format(",".join(["'%s'" % x for x in insert.values()]))
         cmd_sql = "INSERT INTO `{}` {} VALUES {};".format(table, cmd_cols, cmd_values)
 
         import pymysql.cursors
@@ -136,15 +142,16 @@ class AP_Database:
             db.close()
             logger.info("close mysql connector.")
         return rowcount
+
     @staticmethod
-    def update_dic(logger: Lewin_Logging, where:dict, update:dict, host, user, password, database, table):
+    def update_dic(logger: Lewin_Logging, where: dict, update: dict, host, user, password, database, table):
         rowcount = 0
         if (len(where) == 0) or (len(update) == 0):
             logger.warning("pls give 'where' and 'update' to update!")
             return rowcount
 
-        cmd_update = ",".join(["%s='%s'"%(key,value) for key,value in update.items()])
-        cmd_where = "({})".format(" and ".join(["%s='%s'"%(key,value) for key,value in where.items()]))
+        cmd_update = ",".join(["%s='%s'" % (key, value) for key, value in update.items()])
+        cmd_where = "({})".format(" and ".join(["%s='%s'" % (key, value) for key, value in where.items()]))
         cmd_sql = "UPDATE `{}` SET {} WHERE {}".format(table, cmd_update, cmd_where)
 
         import pymysql.cursors
@@ -168,3 +175,22 @@ class AP_Database:
             logger.info("close mysql connector.")
         return rowcount
 
+
+# ————————————————————————————————————————————————————————
+class Easy_Logging_Time:
+    __date__ = "2019.04.10"
+
+    def debug(self, s):
+        print("[%s][debug] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def info(self, s):
+        print("[%s][info] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def warning(self, s):
+        print("[%s][warning] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def error(self, s):
+        print("[%s][error] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+
+    def critical(self, s):
+        print("[%s][critical] %s" % (datetime.now().strftime("%H:%M:%S"), s))
