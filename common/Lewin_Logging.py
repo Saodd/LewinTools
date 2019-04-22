@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
 __create_date__ = '2019/4/10'
+__all__ = ["Lewin_Logging", "Easy_Logging", "Easy_Logging_Time", "Easy_Jack", "Logging_Mute"]
 """
 
 """
 
 import os, sys, time, re
 from datetime import datetime, timedelta
-
 
 
 # ————————————————————————————————————————————————————————
@@ -410,3 +410,22 @@ class Easy_Jack:
     @property
     def text(self):
         return self.s
+
+
+class Logging_Mute:
+    __date__ = "2019.04.22"
+
+    def debug(self, *args, **kwargs):
+        pass
+
+    def info(self, *args, **kwargs):
+        pass
+
+    def warning(self, *args, **kwargs):
+        pass
+
+    def error(self, *args, **kwargs):
+        pass
+
+    def critical(self, *args, **kwargs):
+        pass

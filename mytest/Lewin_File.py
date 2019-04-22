@@ -41,7 +41,7 @@ ARG_days_after = 1
 
 # ————————————————————————————————————————————————————————
 class Test__Lewin_Findfiles(unittest.TestCase):
-    __date__ = "2019.04.14"
+    __date__ = "2019.04.22"
 
     def test__Version_Date(self):
         versions = (Lewin_Findfiles.__date__, Test__Lewin_Findfiles.__date__)
@@ -49,7 +49,7 @@ class Test__Lewin_Findfiles(unittest.TestCase):
         self.assertEqual(*versions, msg=msg)
 
     def setUp(self) -> None:
-        self.wsp = Lewin_Findfiles(path=TEST_DIR, logger=logger)
+        self.wsp = Lewin_Findfiles(path=TEST_DIR)
 
     # ——————————————————— find_all() —————————————————————
     def test__find_all__All(self):

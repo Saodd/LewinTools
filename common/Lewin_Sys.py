@@ -13,11 +13,11 @@ from datetime import datetime
 
 # ————————————————————————————————————————————————————————
 class Append_Sys_Path:
-    __date__ = "2019.04.14"
+    __date__ = "2019.04.22"
 
     def __init__(self, path, logger=None):
         if logger is None:
-            self.logger = Easy_Logging_Time
+            self.logger = Logging_Mute()
         else:
             self.logger = logger
         if isinstance(path, list):
@@ -43,15 +43,15 @@ class Append_Sys_Path:
             self.logger.debug("remove [%s] from sys path." % pa)
         return isinstance(exc_val, TypeError)
 
+
 class Keep_Sys_Path:
-    __date__ = "2019.04.16"
+    __date__ = "2019.04.22"
 
     def __init__(self, logger=None):
         if logger is None:
-            self.logger = Easy_Logging_Time
+            self.logger = Logging_Mute()
         else:
             self.logger = logger
-
 
     def __enter__(self):
         self.path = [x for x in sys.path]
@@ -60,25 +60,27 @@ class Keep_Sys_Path:
         try:
             sys.path = [x for x in self.path]
         except Exception as e:
-            self.logger.error("Failed when recovering sys.path !! %s"%e)
+            self.logger.error("Failed when recovering sys.path !! %s" % e)
         else:
             self.logger.debug("Success recover sys.path.")
         return isinstance(exc_val, TypeError)
+
+
 # ————————————————————————————————————————————————————————
-class Easy_Logging_Time:
-    __date__ = "2019.04.10"
+class Logging_Mute:
+    __date__ = "2019.04.22"
 
-    def debug(self, s):
-        print("[%s][debug] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+    def debug(self, *args, **kwargs):
+        pass
 
-    def info(self, s):
-        print("[%s][info] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+    def info(self, *args, **kwargs):
+        pass
 
-    def warning(self, s):
-        print("[%s][warning] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+    def warning(self, *args, **kwargs):
+        pass
 
-    def error(self, s):
-        print("[%s][error] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+    def error(self, *args, **kwargs):
+        pass
 
-    def critical(self, s):
-        print("[%s][critical] %s" % (datetime.now().strftime("%H:%M:%S"), s))
+    def critical(self, *args, **kwargs):
+        pass
