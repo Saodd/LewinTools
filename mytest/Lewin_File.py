@@ -164,6 +164,42 @@ class Test__Lewin_Findfiles(unittest.TestCase):
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
+    # ——————————————————— archive() —————————————————————
+    def test__archive__delete(self):
+        arg_dt = ARG_now
+        arg_fmt = ARGS[arg_dt]
+        # create file
+        files_before = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        name_file = "Test_{}.testfile".format((arg_dt - timedelta(10)).strftime(arg_fmt))
+        path_file = os.path.join(TEST_DIR, name_file)
+        open(path_file, "w").close()
+        assert os.path.exists(path_file)
+        # archive file
+        files_archived = self.wsp.archive(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile",
+                                          before=(arg_dt - timedelta(9)), move_to=None)
+        files_after = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        # test
+        self.assertEqual(files_archived, [[path_file, None]])
+        self.assertEqual(files_before, files_after)
+
+    def test__archive__move(self):
+        arg_dt = ARG_now
+        arg_fmt = ARGS[arg_dt]
+        # create file
+        files_before = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        name_file = "Test_{}.testfile".format((arg_dt - timedelta(12)).strftime(arg_fmt))
+        path_file = os.path.join(TEST_DIR, name_file)
+        path_file_new = os.path.join(TEST_DIR, "archive", name_file)
+        open(path_file, "w").close()
+        assert os.path.exists(path_file)
+        # archive file
+        files_archived = self.wsp.archive(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile",
+                                          before=(arg_dt - timedelta(11)), move_to="./archive")
+        files_after = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        # test
+        self.assertEqual(files_archived, [[path_file, path_file_new]])
+        self.assertEqual(files_before, files_after)
+        shutil.rmtree(os.path.join(TEST_DIR, "archive"))
 
 # ————————————————————————————————————————————————————————
 class Environment:

@@ -8,6 +8,7 @@ __create_date__ = '2019/4/10'
 
 import os, re, sys
 from datetime import datetime
+from typing import List
 
 
 # ————————————————————————————————————————————————————————
@@ -142,17 +143,24 @@ class Lewin_Findfiles:
             result = start_dir
         return result
 
-    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive"):
-        """if (move_to=None) will delete target files; else will move to (move_to)."""
+    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive") -> List[list]:
+        """if (move_to=None) will delete target files; else will move to (move_to).
+        :return:
+        move: [[old_file_path, new_file_path], ...]
+        delete: [[old_file_path, None], ...]
+        """
         import shutil
         archived = []
         if move_to:
             move_to = Lewin_Findfiles.easy_path(move_to, start_dir=self.path)
+            try:
+                os.makedirs(move_to)
+            except FileExistsError:
+                pass
+            else: # if create a dir, must show off.
+                self.logger.info("Make dirs: %s" % move_to)
             for file in self.find_all(prefix, fmt, postfix, before=before, abspath=True):
                 newfile = os.path.join(move_to, os.path.basename(file))
-                if not os.path.isdir(os.path.dirname(newfile)):
-                    os.makedirs(os.path.dirname(newfile))
-                    self.logger.info("Make dirs %s" % os.path.dirname(newfile))
                 try:
                     shutil.move(file, newfile)
                 except Exception as e:
