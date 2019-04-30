@@ -13,7 +13,8 @@ from typing import Union
 
 IP_Level_dic = {'all': 6, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 0}
 OP_Level_dic = {'all': 0, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 6}
-FMT = {'simple': "[%(levelname)s] %(message)s",
+FMT = {"none": "%(message)s",
+       'simple': "[%(levelname)s] %(message)s",
        'info': "[%(levelname)s][%(time)s] %(message)s",
        'all': "[%(levelname)s][%(time)s][%(filename)s %(funcName)s()][%(processid)s/%(lineno)d][%(loggername)s] %(message)s",
        'debug': "[%(levelname)s][%(time)s][%(filename)s %(funcName)s()][%(processid)s/%(lineno)d] %(message)s",
@@ -100,6 +101,12 @@ class Lewin_LogMod_Jack:
             else:
                 sys.stdout.write(message)
 
+    def mywrite_err(self, msg: Lewin_Msg):
+        if self.kept_stderr:
+            message = msg.translate(FMT["none"])
+            self.kept_stderr.write(message)
+            self.kept_stderr.flush()
+
     # Input methods
     def write(self, message):
         if message != "\n":  # print在输出之后会额外调用一次sys.stdout.write("\n")，而不是把\n加在输出的内容后面。
@@ -107,7 +114,6 @@ class Lewin_LogMod_Jack:
 
     def flush(self):
         pass
-
 
 
 class Lewin_Logging:
@@ -188,7 +194,6 @@ class Lewin_Logging:
             else:
                 self.OPs.append(Lewin_LogMod_Jack(OP_level="none").ensure_sys())
             return self
-
 
 
 # ————————————————————————————————————————————————————————

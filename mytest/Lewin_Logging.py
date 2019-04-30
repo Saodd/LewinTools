@@ -15,7 +15,8 @@ from threading import Thread
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if path not in sys.path:
     sys.path.insert(0, path)
-from LewinTools import Lewin_Logging
+from LewinTools.common.Lewin_Logging import Lewin_Logging
+from LewinTools.pro.Processing import Lewin_Logging_Pro
 
 
 # ————————————————————————— Functions ———————————————————————————————
@@ -98,6 +99,14 @@ class Test__Lewin_Logging:
             logger3.info("You should *not* see this.")
             logger3.critical("You should see this.")
             print("You should see this.")
+
+    def test__multi_process(self):
+        def myprint(logger:Lewin_Logging):
+            logger.info("do something!")
+        with Lewin_Logging().add_op_sys() as logger:
+            p = Thread(target=myprint, args=(logger,))
+            p.start()
+            p.join()
 
 
 # ————————————————————————— Main ———————————————————————————————
