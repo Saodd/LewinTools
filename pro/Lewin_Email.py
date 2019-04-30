@@ -89,7 +89,7 @@ class Lewin_Outbox:
             self.logger.error("Failed when login email server: %s." % e)
             raise
         else:
-            self.logger.info("Email sent to ", to_account)
+            self.logger.info("Email sent to %s" % to_account)
             return True
 
     def _list(self, arg: Union[str, List[str]]) -> list:
