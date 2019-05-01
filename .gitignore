@@ -1,8 +1,12 @@
 #python编译文件
 __pycache__
 
+#pycharm
+.idea
 
 #日志/数据文件
+data
+log
 *.log
 *.lg
 *.csv
@@ -15,5 +19,5 @@ __pycache__
 *.pdf
 
 #保密文件
-password.py
+Config_Keys.py
 

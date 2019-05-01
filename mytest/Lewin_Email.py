@@ -14,7 +14,8 @@ if path not in sys.path:
     sys.path.insert(0, path)
 from LewinTools.common.Lewin_Logging import Easy_Logging_Time
 from LewinTools.pro.Lewin_Email import Lewin_Outbox
-from LewinTools.password import Mail163 as Email_Account
+from LewinTools.Config_Keys import Mail163 as Email_Account
+
 
 # ————————————————————————— Functions ———————————————————————————————
 def test__send_text_email():
