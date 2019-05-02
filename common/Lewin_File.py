@@ -15,7 +15,7 @@ from typing import List
 class Lewin_Findfiles:
     __date__ = "2019.04.22"
 
-    def __init__(self, path: str = "", touch: bool = False, logger = None) -> None:
+    def __init__(self, path: str = "", touch: bool = False, logger=None) -> None:
         path = Lewin_Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
         path = path.strip()
         if logger:
@@ -143,7 +143,8 @@ class Lewin_Findfiles:
             result = start_dir
         return result
 
-    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive") -> List[list]:
+    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive") -> List[
+        List[str, str]]:
         """if (move_to=None) will delete target files; else will move to (move_to).
         :return:
         move: [[old_file_path, new_file_path], ...]
@@ -157,7 +158,7 @@ class Lewin_Findfiles:
                 os.makedirs(move_to)
             except FileExistsError:
                 pass
-            else: # if create a dir, must show off.
+            else:  # if create a dir, must show off.
                 self.logger.info("Make dirs: %s" % move_to)
             for file in self.find_all(prefix, fmt, postfix, before=before, abspath=True):
                 newfile = os.path.join(move_to, os.path.basename(file))
@@ -175,60 +176,15 @@ class Lewin_Findfiles:
                 except Exception as e:
                     self.logger.error("Failed when deleting {%s}: {%s}" % (file, e))
                 else:
-                    archived.append([file, None])
+                    archived.append([file, ""])
                     self.logger.info("Delete file {%s}." % (file,))
         return archived
 
 
-# ————————————————————————————————————————————————————————
-class Lewin_Ftp:
-    __date__ = "2019.04.22"
 
-    def __init__(self, host, username, password, logger=None):
-        if logger == None:
-            self.logger = Logging_Mute()
-        else:
-            self.logger = logger
-        import ftplib
-        self.ftp = ftplib.FTP(host)
-        self.ftp.login(username, password)
-
-    def __del__(self):
-        try:
-            self.ftp.quit()
-        except:
-            pass
-
-    def download(self, path_remote: str, path_local: str):
-        self.logger.info(path_local)
-        with open(path_local, 'wb') as f:
-            self.ftp.retrbinary("RETR %s" % path_remote, f.write)
 
 
 # ————————————————————————————————————————————————————————
-class Others:
-    def __init__(self):
-        self.path = "something else."
-
-    def pdf_to_txt(self, pdf_path, txt_path, fmt):
-        pdf_path = Lewin_Findfiles.easy_path(filename=pdf_path, default_dir=self.path)
-        txt_path = Lewin_Findfiles.easy_path(filename=txt_path, default_dir=self.path)
-
-        import pandas as pd
-        import pdfplumber
-        # 参考 https://github.com/jsvine/pdfplumber#table-extraction-methods
-
-        with pdfplumber.open(pdf_path) as pdf:
-            tables = []
-            for page in pdf.pages:
-                for table in page.extract_tables(fmt):
-                    tables += table
-            df = pd.DataFrame(tables)
-            df.to_csv(txt_path, index=False)
-
-        return txt_path
-
-
 class Logging_Mute:
     __date__ = "2019.04.22"
 

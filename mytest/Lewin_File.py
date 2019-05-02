@@ -17,15 +17,10 @@ path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 if path not in sys.path:
     sys.path.append(path)
 from LewinTools import Lewin_Findfiles, Easy_Logging_Time
+from LewinTools.mytest.Config_Test import test_config
 
 # —————————————————————————Assign testing directory———————————————————————————————
-TRY_DIRS = ["E:/lewin/data/test/Lewin_File",
-            "/home/lewin/data/test/Lewin_File",
-            "C:/Users/lewin/mycode/data/test/Lewin_File"]
-TEST_DIR = ""
-for path in TRY_DIRS:
-    if os.path.exists(path):
-        TEST_DIR = path  # TEST_DIR will be used in Testcase
+TEST_DIR = test_config.path__Lewin_File
 
 # ————————————————————————Settings————————————————————————————————
 logger = Easy_Logging_Time()
@@ -41,12 +36,12 @@ ARG_days_after = 1
 
 # ————————————————————————————————————————————————————————
 class Test__Lewin_Findfiles(unittest.TestCase):
-    __date__ = "2019.04.22"
+    __date__ = "20190422"
 
     def test__Version_Date(self):
         versions = (Lewin_Findfiles.__date__, Test__Lewin_Findfiles.__date__)
         msg = "Lewin_Findfiles is [%s], but Test is [%s]" % versions
-        self.assertEqual(*versions, msg=msg)
+        self.assertTrue(versions[0] < versions[1], msg=msg)
 
     def setUp(self) -> None:
         self.wsp = Lewin_Findfiles(path=TEST_DIR)
@@ -158,7 +153,7 @@ class Test__Lewin_Findfiles(unittest.TestCase):
 
     def test__easy_path__Other_py(self):
         sys.path.insert(0, TEST_DIR)
-        import file__easy_path__Other_py
+        import file__easy_path__Other_py  # created when __enter__()
         want = TEST_DIR
         result = file__easy_path__Other_py.test_in_file()
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
@@ -201,6 +196,7 @@ class Test__Lewin_Findfiles(unittest.TestCase):
         self.assertEqual(files_before, files_after)
         shutil.rmtree(os.path.join(TEST_DIR, "archive"))
 
+
 # ————————————————————————————————————————————————————————
 class Environment:
     script = """
@@ -223,7 +219,7 @@ def test_in_file():
         if len(os.listdir(self.dir)):
             exit("The testing directory [%s] is not empty!! Please clean it up." % self.dir)
         logger.info(" Preparing environment ".center(100, '-'))
-        # prepare for files.
+        # prepare for date_files.
         for arg_dt, arg_fmt in ARGS.items():
             for days in range(ARG_days_before, ARG_days_after + 1):
                 name_file = "Test_{}.testfile".format((arg_dt + timedelta(days)).strftime(arg_fmt))
@@ -239,8 +235,7 @@ def test_in_file():
                         logger.info("Created: %s" % path_file)
                         obj_file.close()
                         self.files.append(path_file)
-        # prepare for python file.
-
+        # prepare for python_file.
         try:
             with open(Environment.path_test_py, 'w') as f:
                 f.write(Environment.script)
@@ -249,33 +244,19 @@ def test_in_file():
         else:
             logger.info("Created file: %s" % Environment.path_test_py)
         logger.info(" Finished preparing environment ".center(100, '-'))
+        logger.info(" Finished preparing environment ".center(100, '-'))
         time.sleep(0.5)  # Special for Pycharm. Coz stderr seems bad in Pycharm-windows.
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         time.sleep(0.5)  # Special for Pycharm. Coz stderr seems bad in Pycharm-windows.
         logger.info(" Recovering environment ".center(100, '-'))
-        # clean files.
-        while len(self.files):
-            path_file = self.files.pop()
-            try:
-                os.remove(path_file)
-            except Exception as e:
-                logger.error("Failed when deleting [%s]: %s" % (path_file, e))
-            else:
-                logger.info("Deleted: %s" % path_file)
-        # clean python files.
+        # clean the whole directory.
         try:
-            os.remove(Environment.path_test_py)
+            shutil.rmtree(TEST_DIR)
         except:
-            logger.error("Failed when removing file: %s" % Environment.path_test_py)
+            logger.error("Failed when removing tree: %s" % TEST_DIR)
         else:
-            logger.info("Removed file: %s" % Environment.path_test_py)
-        try:
-            shutil.rmtree(os.path.join(TEST_DIR, "__pycache__"))
-        except:
-            logger.error("Failed when removing tree: %s" % os.path.join(TEST_DIR, "__pycache__"))
-        else:
-            logger.info("Removed tree: %s" % os.path.join(TEST_DIR, "__pycache__"))
+            logger.info("Removed tree: %s" % TEST_DIR)
         logger.info(" Finished recovering environment ".center(100, '-'))
         return isinstance(exc_val, TypeError)
 
