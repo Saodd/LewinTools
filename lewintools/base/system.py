@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
-__date__ = '2019/4/10'
-__version__ = "20190410"
+__all__ = ["Append_Sys_Path", "Keep_Sys_Path"]
 """
 
 """
 
 import os, sys
-from datetime import datetime
-
+from lewintools import Null
 
 # ————————————————————————————————————————————————————————
 class Append_Sys_Path:
@@ -17,7 +15,7 @@ class Append_Sys_Path:
 
     def __init__(self, path, logger=None):
         if logger is None:
-            self.logger = Logging_Mute()
+            self.logger = Null()
         else:
             self.logger = logger
         if isinstance(path, list):
@@ -49,7 +47,7 @@ class Keep_Sys_Path:
 
     def __init__(self, logger=None):
         if logger is None:
-            self.logger = Logging_Mute()
+            self.logger = Null()
         else:
             self.logger = logger
 
@@ -66,21 +64,3 @@ class Keep_Sys_Path:
         return isinstance(exc_val, TypeError)
 
 
-# ————————————————————————————————————————————————————————
-class Logging_Mute:
-    __date__ = "2019.04.22"
-
-    def debug(self, *args, **kwargs):
-        pass
-
-    def info(self, *args, **kwargs):
-        pass
-
-    def warning(self, *args, **kwargs):
-        pass
-
-    def error(self, *args, **kwargs):
-        pass
-
-    def critical(self, *args, **kwargs):
-        pass

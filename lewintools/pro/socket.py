@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
 __date__ = '2019/4/10'
-__all__ = ['Lewin_Socket_Server', "Lewin_Socket_Client"]
+__all__ = ['Socket_Server', "Socket_Client"]
 """
 
 """
@@ -10,7 +10,7 @@ __all__ = ['Lewin_Socket_Server', "Lewin_Socket_Client"]
 import os, sys, socket, struct
 from socket import socket
 import socket as Socket
-from LewinTools.common.Lewin_Logging import Easy_Logging_Time, Lewin_Logging
+from lewintools import Logger_Easy_Time, Logger
 
 
 # ————————————————————————————————————————————————————————
@@ -19,11 +19,11 @@ from LewinTools.common.Lewin_Logging import Easy_Logging_Time, Lewin_Logging
 class _Base_Socket:
     __date__ = "2019.04.11"
 
-    def __init__(self, logger: Lewin_Logging = None):
+    def __init__(self, logger: Logger = None):
         self.over_Buffer = b''
-        self.logger = Easy_Logging_Time()
+        self.logger = Logger_Easy_Time()
         if logger == None:
-            self.logger = Easy_Logging_Time()
+            self.logger = Logger_Easy_Time()
         else:
             self.logger = logger
         self._init_settings()
@@ -65,9 +65,9 @@ class _Base_Socket:
         conn.sendall(header + body.encode())
 
 
-class Lewin_Socket_Server(_Base_Socket):
+class Socket_Server(_Base_Socket):
     """
-    pls inherit Lewin_Socket_Server,
+    pls inherit Socket_Server,
     choice 1:
         overwrite "with_conn(self, conn:socket, addr:str)" and even "run_server".
     choice 2:
@@ -91,9 +91,9 @@ class Lewin_Socket_Server(_Base_Socket):
         print("backend function received: %s" % recv_data)
 
 
-class Lewin_Socket_Client(_Base_Socket):
+class Socket_Client(_Base_Socket):
     """
-    pls inherit Lewin_Socket_Client,
+    pls inherit Socket_Client,
     and overwrite "with_conn(self, conn:socket)" or even overwrite "login".
     """
     __date__ = "2019.04.10"

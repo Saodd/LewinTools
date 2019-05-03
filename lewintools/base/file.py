@@ -1,27 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
-__create_date__ = '2019/4/10'
+__all__ = ["Findfiles"]
 """
 
 """
 
 import os, re, sys
 from datetime import datetime
-from typing import List
+from typing import List, Tuple, Union
+from lewintools import Null
 
 
 # ————————————————————————————————————————————————————————
-class Lewin_Findfiles:
+class Findfiles:
     __date__ = "2019.04.22"
 
     def __init__(self, path: str = "", touch: bool = False, logger=None) -> None:
-        path = Lewin_Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
+        path = Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
         path = path.strip()
         if logger:
             self.logger = logger
         else:
-            self.logger = Logging_Mute()
+            self.logger = Null()
         if os.path.isdir(path):
             self._path = path
         elif touch:
@@ -29,7 +30,7 @@ class Lewin_Findfiles:
             self.logger.info("Created path: %s" % path)
             self._path = path
         else:
-            raise Exception("[%s] is not a path. \nMaybe you can use Lewin_Findfiles(path, touch=True)." % path)
+            raise Exception("[%s] is not a path. \nMaybe you can use Findfiles(path, touch=True)." % path)
         self._result = []
 
     def __str__(self) -> str:
@@ -133,7 +134,7 @@ class Lewin_Findfiles:
             start_dir = os.path.dirname(os.path.abspath(sys._getframe(1 + call_back).f_code.co_filename))
         if path:
             if path.startswith("."):
-                result = Lewin_Findfiles.replace_dot(path, start_dir)
+                result = Findfiles.replace_dot(path, start_dir)
             elif os.path.isabs(path):
                 result = path
             else:
@@ -143,8 +144,8 @@ class Lewin_Findfiles:
             result = start_dir
         return result
 
-    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive") -> List[
-        List[str, str]]:
+    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive") \
+            -> Union[List[Tuple[str, str]], List]:
         """if (move_to=None) will delete target files; else will move to (move_to).
         :return:
         move: [[old_file_path, new_file_path], ...]
@@ -153,7 +154,7 @@ class Lewin_Findfiles:
         import shutil
         archived = []
         if move_to:
-            move_to = Lewin_Findfiles.easy_path(move_to, start_dir=self.path)
+            move_to = Findfiles.easy_path(move_to, start_dir=self.path)
             try:
                 os.makedirs(move_to)
             except FileExistsError:
@@ -179,26 +180,3 @@ class Lewin_Findfiles:
                     archived.append([file, ""])
                     self.logger.info("Delete file {%s}." % (file,))
         return archived
-
-
-
-
-
-# ————————————————————————————————————————————————————————
-class Logging_Mute:
-    __date__ = "2019.04.22"
-
-    def debug(self, *args, **kwargs):
-        pass
-
-    def info(self, *args, **kwargs):
-        pass
-
-    def warning(self, *args, **kwargs):
-        pass
-
-    def error(self, *args, **kwargs):
-        pass
-
-    def critical(self, *args, **kwargs):
-        pass

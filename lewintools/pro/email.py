@@ -12,21 +12,21 @@ import smtplib
 from email.mime.text import MIMEText
 
 # ———————————————————————环境变量—————————————————————————————————
-path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if path not in sys.path:
     sys.path.insert(0, path)
-from LewinTools.common.Lewin_Logging import Logging_Mute
+from lewintools import Null
 from email.header import Header
 from email.utils import formataddr
 
 
 # ————————————————————————————————————————————————————————
-class Lewin_Outbox:
-    __date__ = "2019.04.30"
+class Outbox:
+    __date__ = "20190503"
 
     def __init__(self, logger=None):
         if logger is None:
-            self.logger = Logging_Mute()
+            self.logger = Null()
         else:
             self.logger = logger
 

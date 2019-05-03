@@ -13,17 +13,17 @@ import shutil
 import unittest
 from datetime import datetime, timedelta
 
-path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if path not in sys.path:
     sys.path.append(path)
-from LewinTools import Lewin_Findfiles, Easy_Logging_Time
-from LewinTools.mytest.Config_Test import test_config
+from lewintools import Findfiles, Logger_Easy_Time
+from _tests._config import config_path
 
 # —————————————————————————Assign testing directory———————————————————————————————
-TEST_DIR = test_config.path__Lewin_File
+TEST_DIR = config_path.dir__base__file
 
 # ————————————————————————Settings————————————————————————————————
-logger = Easy_Logging_Time()
+logger = Logger_Easy_Time()
 ARG_now = datetime.now().replace(microsecond=0)
 ARG_now2 = ARG_now - timedelta(hours=1)
 ARG_today = ARG_now.replace(hour=0, minute=0, second=0)
@@ -39,12 +39,12 @@ class Test__Lewin_Findfiles(unittest.TestCase):
     __date__ = "20190422"
 
     def test__Version_Date(self):
-        versions = (Lewin_Findfiles.__date__, Test__Lewin_Findfiles.__date__)
-        msg = "Lewin_Findfiles is [%s], but Test is [%s]" % versions
+        versions = (Findfiles.__date__, Test__Lewin_Findfiles.__date__)
+        msg = "Findfiles is [%s], but Test is [%s]" % versions
         self.assertTrue(versions[0] < versions[1], msg=msg)
 
     def setUp(self) -> None:
-        self.wsp = Lewin_Findfiles(path=TEST_DIR)
+        self.wsp = Findfiles(path=TEST_DIR)
 
     # ——————————————————— find_all() —————————————————————
     def test__find_all__All(self):
@@ -111,51 +111,52 @@ class Test__Lewin_Findfiles(unittest.TestCase):
     # ——————————————————— easy_path() —————————————————————
     def test__easy_path__None(self):
         want = os.path.dirname(os.path.abspath(__file__))
-        result = Lewin_Findfiles.easy_path()
+        result = Findfiles.easy_path()
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__here(self):
         want = os.path.dirname(os.path.abspath(__file__))
-        result = Lewin_Findfiles.easy_path(".")
+        result = Findfiles.easy_path(".")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__parent(self):
         want = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        result = Lewin_Findfiles.easy_path("..")
+        result = Findfiles.easy_path("..")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__uncle(self):
         want = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uncle")
-        result = Lewin_Findfiles.easy_path("../uncle")
+        result = Findfiles.easy_path("../uncle")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__brother(self):
         want = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brother")
-        result = Lewin_Findfiles.easy_path("./brother")
+        result = Findfiles.easy_path("./brother")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__son(self):
         want = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brother/son")
-        result = Lewin_Findfiles.easy_path("./brother/son")
+        result = Findfiles.easy_path("./brother/son")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__out(self):
         want = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brother/son")
-        result = Lewin_Findfiles.easy_path("./brother/son")
+        result = Findfiles.easy_path("./brother/son")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__Other_py(self):
         sys.path.insert(0, TEST_DIR)
-        import file__easy_path__Other_py  # created when __enter__()
+        mod_name = Environment.name_test_py.split(".py")[0]
+        mod = __import__(mod_name)   # created when __enter__()
         want = TEST_DIR
-        result = file__easy_path__Other_py.test_in_file()
+        result = getattr(mod, "test_in_file")()
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
@@ -174,7 +175,7 @@ class Test__Lewin_Findfiles(unittest.TestCase):
                                           before=(arg_dt - timedelta(9)), move_to=None)
         files_after = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
         # test
-        self.assertEqual(files_archived, [[path_file, None]])
+        self.assertEqual(files_archived, [[path_file, ""]])
         self.assertEqual(files_before, files_after)
 
     def test__archive__move(self):
@@ -200,9 +201,9 @@ class Test__Lewin_Findfiles(unittest.TestCase):
 # ————————————————————————————————————————————————————————
 class Environment:
     script = """
-from LewinTools import Lewin_Findfiles
+from lewintools import Findfiles
 def test_in_file():
-    return Lewin_Findfiles.easy_path(".")
+    return Findfiles.easy_path(".")
                         """
     name_test_py = "file__easy_path__Other_py.py"
     path_test_py = os.path.join(TEST_DIR, name_test_py)

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-__all__ = ["test_config"]
+__all__ = ["config_path"]
 
 import os
 
 
 # ---------------------- class --------------------------------------
-class _Testing_Config:
+class Get_Path:
     def __init__(self):
-        self.path_mytest = os.path.dirname(os.path.abspath(__file__))
+        self.path_project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     def join_make(self, path:str, dirname:str) -> str:
         path = os.path.join(path, dirname)
@@ -18,12 +18,12 @@ class _Testing_Config:
         return path
 
     @property
-    def path__TestData(self) -> str:
-        return self.join_make(self.path_mytest, "_TestData_")
+    def dir__Data(self) -> str:
+        return self.join_make(self.path_project, "Data")
 
     @property
-    def path__Lewin_File(self) -> str:
-        return self.join_make(self.path__TestData, "Lewin_File")
+    def dir__base__file(self) -> str:
+        return self.join_make(self.dir__Data, "file")
 
 # ---------------------- instance --------------------------------------
-test_config = _Testing_Config()
+config_path = Get_Path()
