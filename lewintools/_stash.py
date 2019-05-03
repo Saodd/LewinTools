@@ -1,18 +1,66 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-__author__ = 'lewin'
-__create_date__ = '2019/4/10'
-"""
 
-"""
+import os, sys
+import zipfile
 
-import os, sys, time, re
-from datetime import datetime, timedelta
 
+
+
+class Lewin_Zip:
+    pass
+
+
+
+class PDF_to_txt:
+    def __init__(self):
+        self.path = "something else."
+
+    def pdf_to_txt(self, pdf_path, txt_path, fmt):
+        pdf_path = Lewin_Findfiles.easy_path(filename=pdf_path, default_dir=self.path)
+        txt_path = Lewin_Findfiles.easy_path(filename=txt_path, default_dir=self.path)
+
+        import pandas as pd
+        import pdfplumber
+        # 参考 https://github.com/jsvine/pdfplumber#table-extraction-methods
+
+        with pdfplumber.open(pdf_path) as pdf:
+            tables = []
+            for page in pdf.pages:
+                for table in page.extract_tables(fmt):
+                    tables += table
+            df = pd.DataFrame(tables)
+            df.to_csv(txt_path, index=False)
+
+        return txt_path
 
 
 # ————————————————————————————————————————————————————————
-class Lewin_Logging:
+class Lewin_Ftp:
+    __date__ = "20190422"
+
+    def __init__(self, host, username, password, logger=None):
+        if logger == None:
+            self.logger = Logging_Mute()
+        else:
+            self.logger = logger
+        import ftplib
+        self.ftp = ftplib.FTP(host)
+        self.ftp.login(username, password)
+
+    def __del__(self):
+        try:
+            self.ftp.quit()
+        except:
+            pass
+
+    def download(self, path_remote: str, path_local: str):
+        self.logger.info(path_local)
+        with open(path_local, 'wb') as f:
+            self.ftp.retrbinary("RETR %s" % path_remote, f.write)
+
+# ————————————————————————————————————————————————————————
+class Lewin_Logging_old:
     level_dict = {'all': 0, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5}
     fmt = {'simple': "[%(levelname)s] %(message)s",
            'info': "[%(levelname)s][%(time)s] %(message)s",
@@ -141,18 +189,18 @@ class Lewin_Logging:
                       % os.path.basename(sys._getframe(1 + self.if_do).f_code.co_filename)
         if not to_addr:
             to_addr = "lewin.lan@apcapitalinvestment.com"
-        obj = Lewin_Logging.Email_Handler(email_name, subject, to_addr)
+        obj = Logger.Email_Handler(email_name, subject, to_addr)
         return self.add_handler(obj, level, fmt, get_stdout, get_stderr)
 
     def add_handler_self(self, name="", level='all', fmt=fmt['info'],
                          get_stdout=True, get_stderr=True):
-        obj = Lewin_Logging.Self_Handler(name)
+        obj = Logger.Self_Handler(name)
         return self.add_handler(obj, level, fmt, get_stdout, get_stderr)
 
     def add_handler(self, file_obj, level, fmt, get_stdout, get_stderr):
         """handler 可以理解为输出的地方。可以输出在控制台，文件，甚至任何file-object。"""
         # 对将要添加的handler的有效性进行检查
-        if level not in Lewin_Logging.level_dict.keys():
+        if level not in Logger.level_dict.keys():
             raise Exception("Wrong output level name.")
         for pack in self.handler_packs:
             if file_obj == pack['file_obj']:  # ！！这个条件好像有点问题，重复打开文件的时候并不会报错，貌似也能正常写入
@@ -193,8 +241,8 @@ class Lewin_Logging:
                'loggername': self.name, }
         for pack in self.handler_packs:
             # 判断级别
-            handler_nlevel = Lewin_Logging.level_dict[pack['level']]
-            log_nlevel = Lewin_Logging.level_dict[log_level]
+            handler_nlevel = Logger.level_dict[pack['level']]
+            log_nlevel = Logger.level_dict[log_level]
             if handler_nlevel <= log_nlevel:
                 # 准备输出内容
                 if titile == None:
@@ -206,8 +254,8 @@ class Lewin_Logging:
 
     # 安排sys.stdout和sys.stderr
     def catch_sys(self, get_stdout, get_stderr):
-        jack_out = Lewin_Logging.Jack('stdout', self)
-        jack_err = Lewin_Logging.Jack('stderr', self)
+        jack_out = Logger.Jack('stdout', self)
+        jack_err = Logger.Jack('stderr', self)
         if get_stdout:
             sys.stdout = jack_out
         if get_stderr:
@@ -245,7 +293,7 @@ class Lewin_Logging:
 
     def send_handler_email(self):
         for pack in self.handler_packs:
-            if isinstance(pack['file_obj'], Lewin_Logging.Email_Handler):
+            if isinstance(pack['file_obj'], Logger.Email_Handler):
                 pack['file_obj'].send()
 
     class Email_Handler:
@@ -289,7 +337,7 @@ class Lewin_Logging:
             name = [name]
         result = []
         for pack in self.handler_packs:
-            if isinstance(pack['file_obj'], Lewin_Logging.Self_Handler):
+            if isinstance(pack['file_obj'], Logger.Self_Handler):
                 if (not name) or (pack['file_obj'].name in name):
                     result.append(pack['file_obj'])
         if to_str:
@@ -299,7 +347,7 @@ class Lewin_Logging:
 
     def get_handler_self(self):
         for pack in self.handler_packs:
-            if isinstance(pack['file_obj'], Lewin_Logging.Self_Handler):
+            if isinstance(pack['file_obj'], Logger.Self_Handler):
                 return pack['file_obj']
 
     class Self_Handler:
@@ -332,81 +380,3 @@ class Lewin_Logging:
 
         def clear(self):
             self.s = ""
-
-
-class Easy_Logging:
-    __date__ = "2019.04.10"
-
-    def debug(self, s):
-        print("[debug]" + s)
-
-    def info(self, s):
-        print("[info]" + s)
-
-    def warning(self, s):
-        print("[warning]" + s)
-
-    def error(self, s):
-        print("[error]" + s)
-
-    def critical(self, s):
-        print("[critical]" + s)
-
-    class easy_logging:
-        debug = (lambda x: print("[debug]" + x))
-        info = (lambda x: print("[info]" + x))
-        warning = (lambda x: print("[warning]" + x))
-        error = (lambda x: print("[error]" + x))
-        critical = (lambda x: print("[critical]" + x))
-
-
-class Easy_Logging_Time:
-    __date__ = "2019.04.10"
-
-    def debug(self, s):
-        print("[%s][debug] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def info(self, s):
-        print("[%s][info] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def warning(self, s):
-        print("[%s][warning] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def error(self, s):
-        print("[%s][error] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def critical(self, s):
-        print("[%s][critical] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-
-class Easy_Jack:
-    """
-    with Easy_Jack() as logger:
-        # do something ...
-        loggings = logger.text
-    """
-    __date__ = "2019.04.10"
-
-    def __init__(self):
-        self.s = ""
-
-    def __enter__(self):
-        self.orig_stdout = sys.stdout
-        sys.stdout = self
-        self.orig_stderr = sys.stderr
-        sys.stderr = self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout = self.orig_stdout
-        sys.stderr = self.orig_stderr
-        return isinstance(exc_val, TypeError)
-
-    def write(self, s):
-        self.s += "%s" % s
-
-    def flush(self):
-        pass
-
-    @property
-    def text(self):
-        return self.s

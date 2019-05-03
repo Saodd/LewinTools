@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
-__create_date__ = '2019/4/10'
+__all__ = ["Findfiles"]
 """
 
 """
 
 import os, re, sys
 from datetime import datetime
+from typing import List, Tuple, Union
+from lewintools import Null
 
 
 # ————————————————————————————————————————————————————————
-class Lewin_Findfiles:
-    __date__ = "2019.04.14"
+class Findfiles:
+    __date__ = "2019.04.22"
 
-    def __init__(self, path: str = "", touch: bool = False, logger = None) -> None:
-        path = Lewin_Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
+    def __init__(self, path: str = "", touch: bool = False, logger=None) -> None:
+        path = Findfiles.easy_path(path, call_back=1)  # 读取的是调用位置的所在文件夹
         path = path.strip()
         if logger:
             self.logger = logger
         else:
-            self.logger = Easy_Logging_Time()
+            self.logger = Null()
         if os.path.isdir(path):
             self._path = path
         elif touch:
@@ -28,7 +30,7 @@ class Lewin_Findfiles:
             self.logger.info("Created path: %s" % path)
             self._path = path
         else:
-            raise Exception("[%s] is not a path. \nMaybe you can use Lewin_Findfiles(path, touch=True)." % path)
+            raise Exception("[%s] is not a path. \nMaybe you can use Findfiles(path, touch=True)." % path)
         self._result = []
 
     def __str__(self) -> str:
@@ -132,7 +134,7 @@ class Lewin_Findfiles:
             start_dir = os.path.dirname(os.path.abspath(sys._getframe(1 + call_back).f_code.co_filename))
         if path:
             if path.startswith("."):
-                result = Lewin_Findfiles.replace_dot(path, start_dir)
+                result = Findfiles.replace_dot(path, start_dir)
             elif os.path.isabs(path):
                 result = path
             else:
@@ -142,17 +144,25 @@ class Lewin_Findfiles:
             result = start_dir
         return result
 
-    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive"):
-        """if (move_to=None) will delete target files; else will move to (move_to)."""
+    def archive(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, move_to="./archive") \
+            -> Union[List[Tuple[str, str]], List]:
+        """if (move_to=None) will delete target files; else will move to (move_to).
+        :return:
+        move: [[old_file_path, new_file_path], ...]
+        delete: [[old_file_path, None], ...]
+        """
         import shutil
         archived = []
         if move_to:
-            move_to = Lewin_Findfiles.easy_path(move_to, start_dir=self.path)
+            move_to = Findfiles.easy_path(move_to, start_dir=self.path)
+            try:
+                os.makedirs(move_to)
+            except FileExistsError:
+                pass
+            else:  # if create a dir, must show off.
+                self.logger.info("Make dirs: %s" % move_to)
             for file in self.find_all(prefix, fmt, postfix, before=before, abspath=True):
                 newfile = os.path.join(move_to, os.path.basename(file))
-                if not os.path.isdir(os.path.dirname(newfile)):
-                    os.makedirs(os.path.dirname(newfile))
-                    self.logger.info("Make dirs %s" % os.path.dirname(newfile))
                 try:
                     shutil.move(file, newfile)
                 except Exception as e:
@@ -167,74 +177,6 @@ class Lewin_Findfiles:
                 except Exception as e:
                     self.logger.error("Failed when deleting {%s}: {%s}" % (file, e))
                 else:
-                    archived.append([file, None])
+                    archived.append([file, ""])
                     self.logger.info("Delete file {%s}." % (file,))
         return archived
-
-
-# ————————————————————————————————————————————————————————
-class Lewin_Ftp:
-    __date__ = "2019.04.14"
-
-    def __init__(self, host, username, password, logger=None):
-        if logger == None:
-            self.logger = Easy_Logging_Time()
-        else:
-            self.logger = logger
-        import ftplib
-        self.ftp = ftplib.FTP(host)
-        self.ftp.login(username, password)
-
-    def __del__(self):
-        try:
-            self.ftp.quit()
-        except:
-            pass
-
-    def download(self, path_remote: str, path_local: str):
-        self.logger.info(path_local)
-        with open(path_local, 'wb') as f:
-            self.ftp.retrbinary("RETR %s" % path_remote, f.write)
-
-
-# ————————————————————————————————————————————————————————
-class Others:
-    def __init__(self):
-        self.path = "something else."
-
-    def pdf_to_txt(self, pdf_path, txt_path, fmt):
-        pdf_path = Lewin_Findfiles.easy_path(filename=pdf_path, default_dir=self.path)
-        txt_path = Lewin_Findfiles.easy_path(filename=txt_path, default_dir=self.path)
-
-        import pandas as pd
-        import pdfplumber
-        # 参考 https://github.com/jsvine/pdfplumber#table-extraction-methods
-
-        with pdfplumber.open(pdf_path) as pdf:
-            tables = []
-            for page in pdf.pages:
-                for table in page.extract_tables(fmt):
-                    tables += table
-            df = pd.DataFrame(tables)
-            df.to_csv(txt_path, index=False)
-
-        return txt_path
-
-
-class Easy_Logging_Time:
-    __date__ = "2019.04.10"
-
-    def debug(self, s):
-        print("[%s][debug] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def info(self, s):
-        print("[%s][info] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def warning(self, s):
-        print("[%s][warning] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def error(self, s):
-        print("[%s][error] %s" % (datetime.now().strftime("%H:%M:%S"), s))
-
-    def critical(self, s):
-        print("[%s][critical] %s" % (datetime.now().strftime("%H:%M:%S"), s))

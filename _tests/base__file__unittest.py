@@ -13,22 +13,17 @@ import shutil
 import unittest
 from datetime import datetime, timedelta
 
-path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if path not in sys.path:
     sys.path.append(path)
-from LewinTools import Lewin_Findfiles, Easy_Logging_Time
+from lewintools import Findfiles, Logger_Easy_Time
+from _tests._config import config_path
 
 # —————————————————————————Assign testing directory———————————————————————————————
-TRY_DIRS = ["E:/lewin/data/test/Lewin_File",
-            "/home/lewin/data/test/Lewin_File",
-            "C:/Users/lewin/mycode/data/test/Lewin_File"]
-TEST_DIR = ""
-for path in TRY_DIRS:
-    if os.path.exists(path):
-        TEST_DIR = path  # TEST_DIR will be used in Testcase
+TEST_DIR = config_path.dir__base__file
 
 # ————————————————————————Settings————————————————————————————————
-logger = Easy_Logging_Time()
+logger = Logger_Easy_Time()
 ARG_now = datetime.now().replace(microsecond=0)
 ARG_now2 = ARG_now - timedelta(hours=1)
 ARG_today = ARG_now.replace(hour=0, minute=0, second=0)
@@ -41,15 +36,15 @@ ARG_days_after = 1
 
 # ————————————————————————————————————————————————————————
 class Test__Lewin_Findfiles(unittest.TestCase):
-    __date__ = "2019.04.14"
+    __date__ = "20190422"
 
     def test__Version_Date(self):
-        versions = (Lewin_Findfiles.__date__, Test__Lewin_Findfiles.__date__)
-        msg = "Lewin_Findfiles is [%s], but Test is [%s]" % versions
-        self.assertEqual(*versions, msg=msg)
+        versions = (Findfiles.__date__, Test__Lewin_Findfiles.__date__)
+        msg = "Findfiles is [%s], but Test is [%s]" % versions
+        self.assertTrue(versions[0] < versions[1], msg=msg)
 
     def setUp(self) -> None:
-        self.wsp = Lewin_Findfiles(path=TEST_DIR, logger=logger)
+        self.wsp = Findfiles(path=TEST_DIR)
 
     # ——————————————————— find_all() —————————————————————
     def test__find_all__All(self):
@@ -116,61 +111,99 @@ class Test__Lewin_Findfiles(unittest.TestCase):
     # ——————————————————— easy_path() —————————————————————
     def test__easy_path__None(self):
         want = os.path.dirname(os.path.abspath(__file__))
-        result = Lewin_Findfiles.easy_path()
+        result = Findfiles.easy_path()
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__here(self):
         want = os.path.dirname(os.path.abspath(__file__))
-        result = Lewin_Findfiles.easy_path(".")
+        result = Findfiles.easy_path(".")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__parent(self):
         want = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        result = Lewin_Findfiles.easy_path("..")
+        result = Findfiles.easy_path("..")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__uncle(self):
         want = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uncle")
-        result = Lewin_Findfiles.easy_path("../uncle")
+        result = Findfiles.easy_path("../uncle")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__brother(self):
         want = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brother")
-        result = Lewin_Findfiles.easy_path("./brother")
+        result = Findfiles.easy_path("./brother")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__son(self):
         want = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brother/son")
-        result = Lewin_Findfiles.easy_path("./brother/son")
+        result = Findfiles.easy_path("./brother/son")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__out(self):
         want = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brother/son")
-        result = Lewin_Findfiles.easy_path("./brother/son")
+        result = Findfiles.easy_path("./brother/son")
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
 
     def test__easy_path__Other_py(self):
         sys.path.insert(0, TEST_DIR)
-        import file__easy_path__Other_py
+        mod_name = Environment.name_test_py.split(".py")[0]
+        mod = __import__(mod_name)   # created when __enter__()
         want = TEST_DIR
-        result = file__easy_path__Other_py.test_in_file()
+        result = getattr(mod, "test_in_file")()
         mark = (os.path.commonpath([want]) == os.path.commonpath([result]))
         self.assertTrue(mark, msg="\nwant: {}\nresult: {}".format(want, result))
+
+    # ——————————————————— archive() —————————————————————
+    def test__archive__delete(self):
+        arg_dt = ARG_now
+        arg_fmt = ARGS[arg_dt]
+        # create file
+        files_before = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        name_file = "Test_{}.testfile".format((arg_dt - timedelta(10)).strftime(arg_fmt))
+        path_file = os.path.join(TEST_DIR, name_file)
+        open(path_file, "w").close()
+        assert os.path.exists(path_file)
+        # archive file
+        files_archived = self.wsp.archive(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile",
+                                          before=(arg_dt - timedelta(9)), move_to=None)
+        files_after = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        # test
+        self.assertEqual(files_archived, [[path_file, ""]])
+        self.assertEqual(files_before, files_after)
+
+    def test__archive__move(self):
+        arg_dt = ARG_now
+        arg_fmt = ARGS[arg_dt]
+        # create file
+        files_before = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        name_file = "Test_{}.testfile".format((arg_dt - timedelta(12)).strftime(arg_fmt))
+        path_file = os.path.join(TEST_DIR, name_file)
+        path_file_new = os.path.join(TEST_DIR, "archive", name_file)
+        open(path_file, "w").close()
+        assert os.path.exists(path_file)
+        # archive file
+        files_archived = self.wsp.archive(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile",
+                                          before=(arg_dt - timedelta(11)), move_to="./archive")
+        files_after = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
+        # test
+        self.assertEqual(files_archived, [[path_file, path_file_new]])
+        self.assertEqual(files_before, files_after)
+        shutil.rmtree(os.path.join(TEST_DIR, "archive"))
 
 
 # ————————————————————————————————————————————————————————
 class Environment:
     script = """
-from LewinTools import Lewin_Findfiles
+from lewintools import Findfiles
 def test_in_file():
-    return Lewin_Findfiles.easy_path(".")
+    return Findfiles.easy_path(".")
                         """
     name_test_py = "file__easy_path__Other_py.py"
     path_test_py = os.path.join(TEST_DIR, name_test_py)
@@ -187,7 +220,7 @@ def test_in_file():
         if len(os.listdir(self.dir)):
             exit("The testing directory [%s] is not empty!! Please clean it up." % self.dir)
         logger.info(" Preparing environment ".center(100, '-'))
-        # prepare for files.
+        # prepare for date_files.
         for arg_dt, arg_fmt in ARGS.items():
             for days in range(ARG_days_before, ARG_days_after + 1):
                 name_file = "Test_{}.testfile".format((arg_dt + timedelta(days)).strftime(arg_fmt))
@@ -203,8 +236,7 @@ def test_in_file():
                         logger.info("Created: %s" % path_file)
                         obj_file.close()
                         self.files.append(path_file)
-        # prepare for python file.
-
+        # prepare for python_file.
         try:
             with open(Environment.path_test_py, 'w') as f:
                 f.write(Environment.script)
@@ -213,33 +245,19 @@ def test_in_file():
         else:
             logger.info("Created file: %s" % Environment.path_test_py)
         logger.info(" Finished preparing environment ".center(100, '-'))
+        logger.info(" Finished preparing environment ".center(100, '-'))
         time.sleep(0.5)  # Special for Pycharm. Coz stderr seems bad in Pycharm-windows.
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         time.sleep(0.5)  # Special for Pycharm. Coz stderr seems bad in Pycharm-windows.
         logger.info(" Recovering environment ".center(100, '-'))
-        # clean files.
-        while len(self.files):
-            path_file = self.files.pop()
-            try:
-                os.remove(path_file)
-            except Exception as e:
-                logger.error("Failed when deleting [%s]: %s" % (path_file, e))
-            else:
-                logger.info("Deleted: %s" % path_file)
-        # clean python files.
+        # clean the whole directory.
         try:
-            os.remove(Environment.path_test_py)
+            shutil.rmtree(TEST_DIR)
         except:
-            logger.error("Failed when removing file: %s" % Environment.path_test_py)
+            logger.error("Failed when removing tree: %s" % TEST_DIR)
         else:
-            logger.info("Removed file: %s" % Environment.path_test_py)
-        try:
-            shutil.rmtree(os.path.join(TEST_DIR, "__pycache__"))
-        except:
-            logger.error("Failed when removing tree: %s" % os.path.join(TEST_DIR, "__pycache__"))
-        else:
-            logger.info("Removed tree: %s" % os.path.join(TEST_DIR, "__pycache__"))
+            logger.info("Removed tree: %s" % TEST_DIR)
         logger.info(" Finished recovering environment ".center(100, '-'))
         return isinstance(exc_val, TypeError)
 

@@ -1,8 +1,14 @@
 #python编译文件
 __pycache__
 
+#pycharm
+.idea
 
 #日志/数据文件
+Data
+data
+Log
+log
 *.log
 *.lg
 *.csv
@@ -14,4 +20,6 @@ __pycache__
 *.zip
 *.pdf
 
+#保密文件
+Lewin_Keys.py
 
