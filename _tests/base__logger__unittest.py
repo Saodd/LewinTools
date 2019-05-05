@@ -176,6 +176,20 @@ class Test__Lewin_Logging__hand:
             with Logger() as logger:
                 logger.write_stderr("another wrong.")  # 没有捕获sys.stderr的情况下也能正常输出
 
+    def test__print_exception(self, func_name):
+        with Breaker(" {%s}: see 2 group exception. " % func_name):
+            with Logger().add_ip_sys().add_op_sys() as logger:
+                try:
+                    raise Exception("You should see this *stdout*. with add_ip_sys.")
+                except:
+                    logger.print_exception()
+            time.sleep(0.1)
+            with Logger() as logger:
+                try:
+                    raise Exception("You should see this *stderr*. without add_ip_sys.")
+                except:
+                    logger.print_exception()
+
 
 # ————————————————————————— Main ———————————————————————————————
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ __all__ = ["Logger", "Logger_Easy", "Logger_Easy_Time", "Logger_Jack", "Null"]
 
 """
 
-import os, sys, time, re, _io
-from datetime import datetime, timedelta
+import os, sys, traceback
+from datetime import datetime
 from typing import Union, List, Tuple, Dict
 
 IP_Level_dic = {'all': 6, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 0}
@@ -60,7 +60,7 @@ class IP_Self:
     def write(self, msg: Msg) -> None:
         pass
 
-    def fulsh(self) -> None:
+    def flush(self) -> None:
         pass
 
     def debug(self, message, title=None, end="\n"):
@@ -77,6 +77,11 @@ class IP_Self:
 
     def critical(self, message, title=None, end="\n"):
         self.write(Msg("critical", title, message, end))
+
+    def print_exception(self):
+        except_info = ''.join(traceback.format_exception(*sys.exc_info()))
+        sys.stderr.write(except_info)
+        sys.stderr.flush()
 
 
 class IP_Sys:
@@ -127,11 +132,11 @@ class OP_sys:
             else:
                 getattr(sys.stdout, "write")(msg.translate(self.fmt))
 
-    def flush(self, msg: Msg):
+    def flush(self):
         if hasattr(sys.stdout, "direct_fulsh"):
-            getattr(sys.stdout, "direct_fulsh")(msg.translate(self.fmt))
+            getattr(sys.stdout, "direct_fulsh")()
         else:
-            getattr(sys.stdout, "flush")(msg.translate(self.fmt))
+            getattr(sys.stdout, "flush")()
 
 
 class Logger(IP_Self):
@@ -166,9 +171,9 @@ class Logger(IP_Self):
         for OP in self.OPs:
             OP.write(msg)
 
-    def fulsh(self) -> None:
+    def flush(self) -> None:
         for OP in self.OPs:
-            OP.fulsh()
+            OP.flush()
 
     def myclear(self) -> None:
         if not self.cleared:
@@ -180,7 +185,7 @@ class Logger(IP_Self):
             self.cleared = True
 
     # special output stderr -------------------------------
-    def write_stderr(self, txt:str, end="\n", flush=False):
+    def write_stderr(self, txt: str, end="\n", flush=False):
         txt += end
         if hasattr(sys.stderr, "direct_write"):
             getattr(sys.stderr, "direct_write")(txt)
