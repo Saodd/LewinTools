@@ -7,13 +7,16 @@ __author__ = 'lewin'
 
 import os, sys, unittest, time, _io
 import traceback
+from datetime import datetime
 
 # ———————————————————————环境变量—————————————————————————————————
 path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if path not in sys.path:
     sys.path.insert(0, path)
 from lewintools.base.logging import Logger, IP_Sys
+from _tests._config import Environment, config_path
 
+TEST_DIR = config_path["dir__base__logging"]
 
 # ————————————————————————— Functions ———————————————————————————————
 class Breaker:
@@ -73,6 +76,7 @@ def wrapper(myclass):
 
 # ————————————————————————— TestCase ———————————————————————————————
 __test_date__ = "20190505"
+
 
 class Test__Lewin_Logging(unittest.TestCase):
     def test__Version_Date(self):
@@ -159,6 +163,15 @@ class Test__Lewin_Logging(unittest.TestCase):
         self.assertIsInstance(sys.stderr, _io.TextIOWrapper)
         return 9
 
+    def test__op_file(self):
+        path_log = os.path.join(TEST_DIR, "log1.log")
+        msg = "%s"%datetime.now()
+        with Logger().add_op_file(path_log) as logger:
+            logger.info(msg)
+        with open(path_log, "r") as f:
+            log = f.read()
+        self.assertEqual(log, "[INFO] %s\n"%msg)
+
 
 class Test__Lewin_Logging__hand:
     def main(self):
@@ -170,20 +183,20 @@ class Test__Lewin_Logging__hand:
     def test__stderr(self, func_name):
         with Breaker(" {%s}: see 3* RED. " % func_name):
             with Logger().add_ip_sys() as logger:
-                sys.stderr.direct_write("something wrong.\n")
-                logger.write_stderr("another wrong.")  # 捕获了sys.stderr的情况下能正常输出
+                sys.stderr.direct_write("see1 red.\n")
+                logger.write_stderr("see2 red.\n")  # 捕获了sys.stderr的情况下能正常输出
             with Logger() as logger:
-                logger.write_stderr("another wrong.")  # 没有捕获sys.stderr的情况下也能正常输出
+                logger.write_stderr("see3 red.\n")  # 没有捕获sys.stderr的情况下也能正常输出
 
     def test__print_exception(self, func_name):
         with Breaker(" {%s}: see 2 group exception. " % func_name):
-            with Logger().add_ip_sys().add_op_sys() as logger:
+            with Logger().add_ip_sys().add_op_sys() as logger:  # 捕获了sys.stderr的情况下能正常输出
                 try:
                     raise Exception("You should see this *stdout*. with add_ip_sys.")
                 except:
                     logger.print_exception()
             time.sleep(0.1)
-            with Logger() as logger:
+            with Logger() as logger:  # 没有捕获sys.stderr的情况下也能正常输出
                 try:
                     raise Exception("You should see this *stderr*. without add_ip_sys.")
                 except:
@@ -198,12 +211,13 @@ class Test__Lewin_Logging__hand:
                 except:
                     logger.print_exception()  # 没有add_op_sys，所以屏幕上看不见
                 s = logger.read()
-            print(s) # 要显式的打印出来才能看见
+            print(s)  # 要显式的打印出来才能看见
             print(logger.read())  # 打印了一个空白行，因为执行了myclear()
 
 
 # ————————————————————————— Main ———————————————————————————————
 if __name__ == "__main__":
-    Test__Lewin_Logging__hand().main()
+    with Environment(TEST_DIR):
+        Test__Lewin_Logging__hand().main()
 
-    unittest.main()
+        unittest.main()

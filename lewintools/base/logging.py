@@ -4,12 +4,19 @@ __author__ = 'lewin'
 __create_date__ = '2019/4/10'
 __all__ = ["Logger", "Logger_Easy", "Logger_Easy_Time", "Logger_Jack", "Null"]
 """
+----Logger主要实现逻辑：
+    1.输入对象(sys, self)：将logging信息封装为一个Msg实例。
+    2.主体：负责管理和分发。
+    3.输出对象(sys, self[.read()], file, email)：将Msg实例按预先设定的格式输出到相应的位置（屏幕/文件/发送邮件/自身储存）。
 
+----示例用法请参见_tests(或者_examples)文件夹。
 """
 
-import os, sys, traceback
+import os
+import sys
+import traceback
 from datetime import datetime
-from typing import Union, List, Tuple, Dict, ClassVar
+from typing import Union, List, Dict, ClassVar
 
 IP_Level_dic = {'all': 6, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 0}
 OP_Level_dic = {'all': 0, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 6}
@@ -21,7 +28,7 @@ FMT = {"none": "%(message)s",
        'multiprocess': "[%(levelname)s][%(time)s][PID:%(processid)s] %(message)s"}
 
 
-# ————————————————————————————————————————————————————————
+# ----------------------------- Logger ------------------------------------
 def _translate_op_level(OP_level) -> int:
     if isinstance(OP_level, str):
         return OP_Level_dic[OP_level.lower()]
@@ -100,7 +107,7 @@ class IP_Sys:
     def direct_write(self, txt: str):
         self.keeper.write(txt)
 
-    def direct_fulsh(self):
+    def direct_flush(self):
         self.keeper.flush()
 
     def write(self, txt: str):
@@ -143,6 +150,20 @@ class OP_Self(_OP_base):
         return "".join(self.store)
 
 
+class OP_File(OP_Self):
+    def __init__(self, file_path: str, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
+        OP_Self.__init__(self, OP_level, fmt)
+        self.file_path = file_path
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。一次性写入有助于提高性能。"""
+        try:
+            with open(self.file_path, "a") as f:
+                f.write(self.read())
+        except Exception as e:
+            OP_Sys.write_stderr(str(e))
+
+
 class OP_Sys(_OP_base):
     def write(self, msg: Msg):
         if msg.IP_level >= self.OP_level:
@@ -152,10 +173,33 @@ class OP_Sys(_OP_base):
                 getattr(sys.stdout, "write")(msg.translate(self.fmt))
 
     def flush(self):
-        if hasattr(sys.stdout, "direct_fulsh"):
-            getattr(sys.stdout, "direct_fulsh")()
+        if hasattr(sys.stdout, "direct_flush"):
+            getattr(sys.stdout, "direct_flush")()
         else:
             getattr(sys.stdout, "flush")()
+
+    @staticmethod
+    def write_stderr(txt):
+        OP_Sys._direct(sys.stderr, "write", txt)
+
+    @staticmethod
+    def flush_stderr():
+        OP_Sys._direct(sys.stderr, "flush")
+
+    @staticmethod
+    def write_stdout(txt):
+        OP_Sys._direct(sys.stdout, "write", txt)
+
+    @staticmethod
+    def flush_stdout():
+        OP_Sys._direct(sys.stdout, "flush")
+
+    @staticmethod
+    def _direct(target, method, *args):
+        if hasattr(target, "direct_" + method):
+            getattr(target, "direct_" + method)(*args)
+        else:
+            getattr(target, method)(*args)
 
 
 class Logger(IP_Self):
@@ -204,9 +248,9 @@ class Logger(IP_Self):
             self.cleared = True
 
     # Adding Outputers ------------------------------
-    def _add_op(self, cls: ClassVar, level: str, fmt: str):
+    def _add_op(self, cls: ClassVar, *args, **kwargs):
         if not self.get_op_instances(cls):
-            self.OPs.append(cls(level, fmt))
+            self.OPs.append(cls(*args, **kwargs))
         return self
 
     def add_op_sys(self, level="all", fmt: str = FMT['simple']):
@@ -214,6 +258,9 @@ class Logger(IP_Self):
 
     def add_op_self(self, level="all", fmt: str = FMT['simple']):
         return self._add_op(OP_Self, level, fmt)
+
+    def add_op_file(self, file_path: str, level="all", fmt: str = FMT['simple']):
+        return self._add_op(OP_File, file_path, level, fmt)
 
     # Adding Inputers ------------------------------
     def add_ip_sys(self, target_level: Dict = None):
@@ -234,17 +281,8 @@ class Logger(IP_Self):
         return [OP for OP in self.OPs if isinstance(OP, cls)]
 
     # special attribution -------------------------------
-    def write_stderr(self, txt: str, end="\n", flush=False) -> None:
-        txt += end
-        if hasattr(sys.stderr, "direct_write"):
-            getattr(sys.stderr, "direct_write")(txt)
-        else:
-            getattr(sys.stderr, "write")(txt)
-        if flush:
-            if hasattr(sys.stderr, "direct_flush"):
-                getattr(sys.stderr, "direct_flush")(txt)
-            else:
-                getattr(sys.stderr, "flush")(txt)
+    def write_stderr(self, txt):
+        OP_Sys.write_stderr(txt)
 
     def print_exception(self) -> None:
         except_info = ''.join(traceback.format_exception(*sys.exc_info()))
@@ -261,8 +299,9 @@ class Logger(IP_Self):
             return [i.read() for i in ins]
 
 
-# ————————————————————————————————————————————————————————
+# ----------------------------- Other simple Logger ------------------------------------
 class Logger_Easy:
+    """很简单的logger，只调用了print，只是增加了levelname。"""
     __date__ = "2019.04.10"
 
     def debug(self, s):
@@ -289,6 +328,7 @@ class Logger_Easy:
 
 
 class Logger_Easy_Time:
+    """很简单的logger，只调用了print，只是增加了levelname和时间。"""
     __date__ = "2019.04.10"
 
     def debug(self, s):
@@ -309,10 +349,13 @@ class Logger_Easy_Time:
 
 class Logger_Jack:
     """
-    Kidnap sys.stdout&sys.stderr, so is able to intercept prints.
+    Kidnap sys.stdout&sys.stderr, so is able to intercept prints. Then you can do anything on those loggings.
+    ----捕获sys.std，可以截取所有企图通过print输出的信息，并保存在自身实例中，需要时可以读取。
+
+    example用法：
     with Easy_Jack() as logger:
         # do something ...
-        loggings = logger.text
+        return logger.text
     """
     __date__ = "2019.04.10"
 
@@ -342,6 +385,7 @@ class Logger_Jack:
 
 
 class Null:
+    """安全地无视一切调用的终极哑巴对象。用于其他模块中作为默认logger（即默认不输出任何信息）。"""
     __date__ = "20190502"
 
     def __getattr__(self, item):
