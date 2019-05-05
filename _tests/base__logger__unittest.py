@@ -190,6 +190,18 @@ class Test__Lewin_Logging__hand:
                 except:
                     logger.print_exception()
 
+    def test__read(self, func_name):
+        with Breaker(" {%s}: see 1 group exception. " % func_name):
+            with Logger().add_ip_sys().add_op_self() as logger:
+                try:
+                    logger.info("hello!")
+                    raise Exception("You should see this *stdout*. with add_ip_sys.")
+                except:
+                    logger.print_exception()  # 没有add_op_sys，所以屏幕上看不见
+                s = logger.read()
+            print(s) # 要显式的打印出来才能看见
+            print(logger.read())  # 打印了一个空白行，因为执行了myclear()
+
 
 # ————————————————————————— Main ———————————————————————————————
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ __all__ = ["Logger", "Logger_Easy", "Logger_Easy_Time", "Logger_Jack", "Null"]
 
 import os, sys, traceback
 from datetime import datetime
-from typing import Union, List, Tuple, Dict
+from typing import Union, List, Tuple, Dict, ClassVar
 
 IP_Level_dic = {'all': 6, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 0}
 OP_Level_dic = {'all': 0, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 6}
@@ -49,7 +49,7 @@ class Msg:
     def __str__(self) -> str:
         return str(self.message) + str(self.end)
 
-    def translate(self, fmt: str):
+    def translate(self, fmt: str) -> str:
         if self.title is None:
             return fmt % self.__dict__ + "%s" % self.end
         else:
@@ -77,11 +77,6 @@ class IP_Self:
 
     def critical(self, message, title=None, end="\n"):
         self.write(Msg("critical", title, message, end))
-
-    def print_exception(self):
-        except_info = ''.join(traceback.format_exception(*sys.exc_info()))
-        sys.stderr.write(except_info)
-        sys.stderr.flush()
 
 
 class IP_Sys:
@@ -117,7 +112,27 @@ class IP_Sys:
         self.logger.flush()
 
 
-class OP_sys:
+class OP_Self:
+    def __init__(self, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
+        self.OP_level = _translate_op_level(OP_level)
+        self.fmt = fmt
+        self.store = []
+
+    def myclear(self):
+        self.store = []
+
+    def write(self, msg: Msg):
+        if msg.IP_level >= self.OP_level:
+            self.store.append(msg.translate(self.fmt))
+
+    def flush(self):
+        pass
+
+    def read(self) -> str:
+        return "".join(self.store)
+
+
+class OP_Sys:
     def __init__(self, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
         self.OP_level = _translate_op_level(OP_level)
         self.fmt = fmt
@@ -184,26 +199,17 @@ class Logger(IP_Self):
                     print(e)
             self.cleared = True
 
-    # special output stderr -------------------------------
-    def write_stderr(self, txt: str, end="\n", flush=False):
-        txt += end
-        if hasattr(sys.stderr, "direct_write"):
-            getattr(sys.stderr, "direct_write")(txt)
-        else:
-            getattr(sys.stderr, "write")(txt)
-        if flush:
-            if hasattr(sys.stderr, "direct_flush"):
-                getattr(sys.stderr, "direct_flush")(txt)
-            else:
-                getattr(sys.stderr, "flush")(txt)
-
     # Adding Outputers ------------------------------
-    def add_op_sys(self, level="all", fmt: str = FMT['simple']):
-        if [OP for OP in self.OPs if isinstance(OP, IP_Sys)]:
-            pass
-        else:
-            self.OPs.append(OP_sys(level, fmt))
+    def _add_op(self, cls: ClassVar, level: str, fmt: str):
+        if not self.get_op_instances(cls):
+            self.OPs.append(cls(level, fmt))
         return self
+
+    def add_op_sys(self, level="all", fmt: str = FMT['simple']):
+        return self._add_op(OP_Sys, level, fmt)
+
+    def add_op_self(self, level="all", fmt: str = FMT['simple']):
+        return self._add_op(OP_Self, level, fmt)
 
     # Adding Inputers ------------------------------
     def add_ip_sys(self, target_level: Dict = None):
@@ -215,6 +221,38 @@ class Logger(IP_Self):
             else:
                 self.IPs.append(IP_Sys(self, target, level))
         return self
+
+    # manager -------------------------------
+    def get_ip_instances(self, cls: ClassVar) -> list:
+        return [IP for IP in self.IPs if isinstance(IP, cls)]
+
+    def get_op_instances(self, cls: ClassVar) -> list:
+        return [OP for OP in self.OPs if isinstance(OP, cls)]
+
+    # special attribution -------------------------------
+    def write_stderr(self, txt: str, end="\n", flush=False) -> None:
+        txt += end
+        if hasattr(sys.stderr, "direct_write"):
+            getattr(sys.stderr, "direct_write")(txt)
+        else:
+            getattr(sys.stderr, "write")(txt)
+        if flush:
+            if hasattr(sys.stderr, "direct_flush"):
+                getattr(sys.stderr, "direct_flush")(txt)
+            else:
+                getattr(sys.stderr, "flush")(txt)
+
+    def print_exception(self) -> None:
+        except_info = ''.join(traceback.format_exception(*sys.exc_info()))
+        sys.stderr.write(except_info)
+        sys.stderr.flush()
+
+    def read(self) -> str:
+        ins = self.get_op_instances(OP_Self)
+        if len(ins):
+            return ins[0].read()
+        else:
+            raise Exception("The logger have no OP_Self instance, so cant read().")
 
 
 # ————————————————————————————————————————————————————————
