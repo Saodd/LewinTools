@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 __author__ = 'lewin'
-__date__ = '2019/4/23'
 """
 
 """
@@ -73,11 +72,11 @@ def wrapper(myclass):
 
 
 # ————————————————————————— TestCase ———————————————————————————————
-class Test__Lewin_Logging(unittest.TestCase):
-    __date__ = "20190503"
+__test_date__ = "20190505"
 
+class Test__Lewin_Logging(unittest.TestCase):
     def test__Version_Date(self):
-        versions = (Logger.__date__, Test__Lewin_Logging.__date__)
+        versions = (Logger.__date__, __test_date__)
         msg = "Findfiles is [%s], but Test is [%s]" % versions
         self.assertTrue(versions[0] <= versions[1], msg)
 

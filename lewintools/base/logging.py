@@ -112,10 +112,24 @@ class IP_Sys:
         self.logger.flush()
 
 
-class OP_Self:
+class _OP_base:
     def __init__(self, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
         self.OP_level = _translate_op_level(OP_level)
         self.fmt = fmt
+
+    def myclear(self):
+        pass
+
+    def write(self, msg: Msg):
+        pass
+
+    def flush(self):
+        pass
+
+
+class OP_Self(_OP_base):
+    def __init__(self, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
+        _OP_base.__init__(self, OP_level, fmt)
         self.store = []
 
     def myclear(self):
@@ -125,21 +139,11 @@ class OP_Self:
         if msg.IP_level >= self.OP_level:
             self.store.append(msg.translate(self.fmt))
 
-    def flush(self):
-        pass
-
     def read(self) -> str:
         return "".join(self.store)
 
 
-class OP_Sys:
-    def __init__(self, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
-        self.OP_level = _translate_op_level(OP_level)
-        self.fmt = fmt
-
-    def myclear(self):
-        pass
-
+class OP_Sys(_OP_base):
     def write(self, msg: Msg):
         if msg.IP_level >= self.OP_level:
             if hasattr(sys.stdout, "direct_write"):
@@ -155,7 +159,7 @@ class OP_Sys:
 
 
 class Logger(IP_Self):
-    __date__ = "20190503"
+    __date__ = "20190505"
 
     def __init__(self, name: str = None):
         if name is None:
@@ -247,12 +251,14 @@ class Logger(IP_Self):
         sys.stderr.write(except_info)
         sys.stderr.flush()
 
-    def read(self) -> str:
+    def read(self) -> Union[str, List[str]]:
         ins = self.get_op_instances(OP_Self)
-        if len(ins):
+        if len(ins) == 1:
             return ins[0].read()
-        else:
+        elif len(ins) == 0:
             raise Exception("The logger have no OP_Self instance, so cant read().")
+        else:
+            return [i.read() for i in ins]
 
 
 # ————————————————————————————————————————————————————————
