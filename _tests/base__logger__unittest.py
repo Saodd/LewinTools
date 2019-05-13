@@ -18,6 +18,7 @@ from _tests._config import Environment, config_path
 
 TEST_DIR = config_path["dir__base__logging"]
 
+
 # ————————————————————————— Functions ———————————————————————————————
 class Breaker:
     def __init__(self, txt=""):
@@ -165,12 +166,12 @@ class Test__Lewin_Logging(unittest.TestCase):
 
     def test__op_file(self):
         path_log = os.path.join(TEST_DIR, "log1.log")
-        msg = "%s"%datetime.now()
+        msg = "%s" % datetime.now()
         with Logger().add_op_file(path_log) as logger:
             logger.info(msg)
         with open(path_log, "r") as f:
             log = f.read()
-        self.assertEqual(log, "[INFO] %s\n"%msg)
+        self.assertEqual(log, "[INFO] %s\n" % msg)
 
 
 class Test__Lewin_Logging__hand:
