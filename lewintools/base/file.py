@@ -81,12 +81,13 @@ class Findfiles:
         return [x[1] for x in self.find_all_withdate(prefix, fmt, postfix, before, abspath)]
 
     def find_lastone_withdate(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, abspath=False,
-                              ) -> Union[Tuple[datetime, str], None]:
+                              ) -> Union[Tuple[datetime, str], Tuple[None, None]]:
         result = self.find_all_withdate(prefix, fmt, postfix, before, abspath)
         if result:
             return result[0]
         else:
-            return None
+            # coz we expect "date, filename = obj.find_lastone_withdate()" so return a *Tuple* instead of a *None*.
+            return (None, None)
 
     def find_lastone(self, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None, abspath=False,
                      ) -> Union[str, None]:
