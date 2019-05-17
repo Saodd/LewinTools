@@ -15,6 +15,7 @@ if path not in sys.path:
     sys.path.insert(0, path)
 from lewintools.base.logging import Logger, IP_Sys
 from _tests._config import Environment, config_path
+from Lewin_Keys import Email_Account_monitor163 as Email_Account
 
 TEST_DIR = config_path["dir__base__logging"]
 
@@ -216,9 +217,52 @@ class Test__Lewin_Logging__hand:
             print(logger.read())  # 打印了一个空白行，因为执行了myclear()
 
 
+class Test__Lewin_Logging__email:
+    def main(self):
+        tests = [attr for attr in self.__dir__() if attr.startswith("test__")]
+        with Breaker():
+            for t in tests:
+                getattr(self, t)()
+
+    @classmethod
+    def test__email__all(cls):
+        print("you should see +1 email.")
+        with Logger() as logger:
+            logger.add_op_email(account=Email_Account["account"], password=Email_Account["password"],
+                                server_addr=Email_Account["server_addr"], name=Email_Account["name"],
+                                subject="Testing logger", to_account=Email_Account["account"],
+                                only_when_error=False)
+            logger.info("Hello! Nothing wrong here.")
+
+    @classmethod
+    def test__email__only_when_error(cls):
+        print("you should see +0 email.")
+        with Logger() as logger:
+            logger.add_op_email(account=Email_Account["account"], password=Email_Account["password"],
+                                server_addr=Email_Account["server_addr"], name=Email_Account["name"],
+                                subject="Testing logger", to_account=Email_Account["account"],
+                                only_when_error=True)
+            logger.info("you should not see thie email.")
+
+    @classmethod
+    def test__email__exception__only_false(cls):
+        print("you should see +1 email.")
+        try:
+            with Logger() as logger:
+                logger.add_op_email(account=Email_Account["account"], password=Email_Account["password"],
+                                    server_addr=Email_Account["server_addr"], name=Email_Account["name"],
+                                    subject="Testing logger", to_account=Email_Account["account"],
+                                    only_when_error=True)
+                raise Exception("Raise Exception! you should see this email!")
+        except:
+            pass
+
+
+
 # ————————————————————————— Main ———————————————————————————————
 if __name__ == "__main__":
     with Environment(TEST_DIR):
         Test__Lewin_Logging__hand().main()
 
         unittest.main()
+    # Test__Lewin_Logging__email().main()

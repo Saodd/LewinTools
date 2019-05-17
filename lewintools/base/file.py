@@ -12,7 +12,7 @@ from typing import List, Tuple, Union
 from lewintools import Null
 
 
-# ————————————————————————————————————————————————————————
+# ------------------------------------------------
 class Findfiles:
     __date__ = "2019.04.22"
 
@@ -67,7 +67,7 @@ class Findfiles:
                     filter_list.append((timestamp, os.path.join(self._path, file)))
                 else:
                     filter_list.append((timestamp, file))
-                    # 返回结果 --------------------------------
+        # 返回结果 --------------------------------
         if len(filter_list):
             filter_list.sort(reverse=True)
         else:
@@ -187,3 +187,30 @@ class Findfiles:
                     archived.append((file, None))
                     self.logger.info("Delete file {%s}." % (file,))
         return archived
+
+
+# short cut -------------------------------------------------------
+def find_all_withdate(dirpath: str, prefix="^", fmt='%Y%m%d', postfix="$", before: datetime = None,
+                      abspath: bool = False):
+    file_list = os.listdir(dirpath)
+    filter_list = []
+    re_com = re.compile(prefix + "(?P<time>.*?)" + postfix)
+    for file in file_list:
+        result = re_com.findall(file)
+        if result:
+            time = result[0]
+            try:
+                timestamp = datetime.strptime(time, fmt)
+            except:
+                continue
+            if before and timestamp > before:
+                continue
+            if abspath:
+                filter_list.append((timestamp, os.path.join(dirpath, file)))
+            else:
+                filter_list.append((timestamp, file))
+    if len(filter_list):
+        filter_list.sort(reverse=True)
+    else:
+        print("cannot find file: [%s] before [%s] in [%s]." % (prefix + "(%s)" % fmt + postfix, before, dirpath))
+    return filter_list

@@ -10,14 +10,14 @@ import os, sys
 from typing import Union, List
 import smtplib
 from email.mime.text import MIMEText
+from email.header import Header
+from email.utils import formataddr
 
 # ———————————————————————环境变量—————————————————————————————————
 path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if path not in sys.path:
     sys.path.insert(0, path)
 from lewintools import Null
-from email.header import Header
-from email.utils import formataddr
 
 
 # ————————————————————————————————————————————————————————

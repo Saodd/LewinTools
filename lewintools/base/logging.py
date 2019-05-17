@@ -151,7 +151,7 @@ class OP_Self(_OP_base):
 
 
 class OP_File(OP_Self):
-    def __init__(self, file_path: str, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
+    def __init__(self, file_path: str, OP_level: Union[str, int] = "all", fmt: str = FMT['info']):
         OP_Self.__init__(self, OP_level, fmt)
         self.file_path = file_path
 
@@ -162,6 +162,34 @@ class OP_File(OP_Self):
                 f.write(self.read())
         except Exception as e:
             OP_Sys.write_stderr(str(e))
+
+
+class OP_Email(OP_Self):
+    def __init__(self, account: str, password: str, server_addr: str, name: str,
+                 subject: str, to_account: Union[str, List[str]], only_when_error=False,
+                 OP_level: Union[str, int] = "all", fmt: str = FMT['info']):
+        OP_Self.__init__(self, OP_level, fmt)
+        self.login = [account, password, server_addr, 465, name]
+        self.subject = subject
+        self.to_account = to_account
+        self.only_when_error = only_when_error
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。"""
+        if (not self.only_when_error) or (sys.exc_info()[0] is not None):
+            if sys.exc_info()[0] is None:
+                status = "Status: Success! Logger is clearing without Exception.\n" + "-" * 100 + "\n"
+            else:
+                status = "Status: Failed!!\n" + "-" * 100 + "\n" + ''.join(traceback.format_exception(*sys.exc_info()))
+            try:
+                from lewintools.pro.email import Outbox
+                outbox = Outbox()
+                outbox.login_ssl(*self.login)
+                msg = outbox.write_MIMEtext_text(self.subject, status + self.read(), self.to_account)
+                outbox.send_MIMEtext(self.to_account, msg)
+            except Exception as e:
+                msge = "Failed when sending eamil : %s. \n" % str(e)
+                OP_Sys.write_stderr(msge)
 
 
 class OP_Sys(_OP_base):
@@ -261,6 +289,12 @@ class Logger(IP_Self):
 
     def add_op_file(self, file_path: str, level="all", fmt: str = FMT['simple']):
         return self._add_op(OP_File, file_path, level, fmt)
+
+    def add_op_email(self, account: str, password: str, server_addr: str, name: str,
+                     subject: str, to_account: Union[str, List[str]], only_when_error=False,
+                     OP_level: Union[str, int] = "all", fmt: str = FMT['info']):
+        return self._add_op(OP_Email, account, password, server_addr, name, subject, to_account, only_when_error,
+                            OP_level, fmt)
 
     # Adding Inputers ------------------------------
     def add_ip_sys(self, target_level: Dict = None):
