@@ -180,7 +180,7 @@ class OP_Email(OP_Self):
             if sys.exc_info()[0] is None:
                 status = "Status: Success! Logger is clearing without Exception.\n" + "-" * 100 + "\n"
             else:
-                status = "Status: Failed!!\n" + "-" * 100 + "\n" + ''.join(traceback.format_exception(*sys.exc_info()))
+                status = "Status: Failed!!\n" + ''.join(traceback.format_exception(*sys.exc_info())) + "-" * 100 + "\n"
             try:
                 from lewintools.pro.email import Outbox
                 outbox = Outbox()
