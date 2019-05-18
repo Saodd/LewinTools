@@ -363,6 +363,10 @@ class Logger(IP_Self):
         sys.stderr.write(except_info)
         sys.stderr.flush()
 
+    def print_hello(self) -> None:
+        filename = "%s" % sys._getframe(1).f_code.co_filename
+        self.write(Msg("all", "", filename.center(100, "-"), "\n"))
+
     def read(self) -> Union[str, List[str]]:
         ins = self.get_op_instances(OP_Self)
         if len(ins) == 1:
