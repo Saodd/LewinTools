@@ -16,6 +16,7 @@ if path not in sys.path:
 from lewintools.base.logging import Logger, IP_Sys
 from _tests._config import Environment, config_path
 from Lewin_Keys import Email_Account_monitor163 as Email_Account
+from Lewin_Keys import MongoDB as MongoDB_Account
 
 TEST_DIR = config_path["dir__base__logging"]
 
@@ -183,7 +184,7 @@ class Test__Lewin_Logging__hand:
                 getattr(self, t)(t)
 
     def test__stderr(self, func_name):
-        with Breaker(" {%s}: see 3* RED. " % func_name):
+        with Breaker(" {%s}: see 3* RED lines. " % func_name):
             with Logger().add_ip_sys() as logger:
                 sys.stderr.direct_write("see1 red.\n")
                 logger.write_stderr("see2 red.\n")  # 捕获了sys.stderr的情况下能正常输出
@@ -191,7 +192,7 @@ class Test__Lewin_Logging__hand:
                 logger.write_stderr("see3 red.\n")  # 没有捕获sys.stderr的情况下也能正常输出
 
     def test__print_exception(self, func_name):
-        with Breaker(" {%s}: see 2 group exception. " % func_name):
+        with Breaker(" {%s}: see 1-white & 1-red exceptions. " % func_name):
             with Logger().add_ip_sys().add_op_sys() as logger:  # 捕获了sys.stderr的情况下能正常输出
                 try:
                     raise Exception("You should see this *stdout*. with add_ip_sys.")
@@ -205,7 +206,7 @@ class Test__Lewin_Logging__hand:
                     logger.print_exception()
 
     def test__read(self, func_name):
-        with Breaker(" {%s}: see 1 group exception. " % func_name):
+        with Breaker(" {%s}: see 1-white exception. " % func_name):
             with Logger().add_ip_sys().add_op_self() as logger:
                 try:
                     logger.info("hello!")
@@ -257,7 +258,35 @@ class Test__Lewin_Logging__email:
         except:
             pass
 
+class Test__Lewin_Logging__mongodb:
+    def main(self):
+        tests = [attr for attr in self.__dir__() if attr.startswith("test__")]
+        with Breaker():
+            for t in tests:
+                getattr(self, t)()
 
+    @classmethod
+    def test__mongodb__common(cls):
+        print("you should see +1 document in MongoDB.")
+        with Logger().add_op_mongodb(**MongoDB_Account, subject="common",only_when_error=False) as logger:
+            logger.info("Hello!")
+
+    @classmethod
+    def test__mongodb__big_log(cls):
+        print("you should see +1 document in MongoDB.")
+        with Logger().add_op_mongodb(**MongoDB_Account, subject="big log", only_when_error=False) as logger:
+            for i in range(1000):
+                logger.info("Hello!")
+
+    @classmethod
+    def test__mongodb__error(cls):
+        print("you should see +1 document in MongoDB.")
+        try:
+            with Logger().add_op_mongodb(**MongoDB_Account, subject="error", only_when_error=True) as logger:
+                logger.info("Hello!")
+                raise Exception("Raise Exception! you should see this Log!")
+        except:
+            pass
 
 # ————————————————————————— Main ———————————————————————————————
 if __name__ == "__main__":
@@ -266,3 +295,4 @@ if __name__ == "__main__":
 
         unittest.main()
     # Test__Lewin_Logging__email().main()
+    # Test__Lewin_Logging__mongodb().main()

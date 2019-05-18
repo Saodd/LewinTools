@@ -113,7 +113,7 @@ class IP_Sys:
     def write(self, txt: str):
         """ take the place of builtins.print """
         if txt != "\n":
-            self.logger.write(Msg(self.IP_level_name, None, txt, "\n"))
+            self.logger.write(Msg(self.IP_level_name, "", txt, "\n"))
 
     def flush(self):
         self.logger.flush()
@@ -167,7 +167,7 @@ class OP_File(OP_Self):
 class OP_Email(OP_Self):
     def __init__(self, account: str, password: str, server_addr: str, name: str,
                  subject: str, to_account: Union[str, List[str]], only_when_error=False,
-                 OP_level: Union[str, int] = "all", fmt: str = FMT['info']):
+                 OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
         OP_Self.__init__(self, OP_level, fmt)
         self.login = [account, password, server_addr, 465, name]
         self.subject = subject
@@ -188,8 +188,44 @@ class OP_Email(OP_Self):
                 msg = outbox.write_MIMEtext_text(self.subject, status + self.read(), self.to_account)
                 outbox.send_MIMEtext(self.to_account, msg)
             except Exception as e:
-                msge = "Failed when sending eamil : %s. \n" % str(e)
+                msge = "Logger failed when sending eamil : %s. \n" % str(e)
                 OP_Sys.write_stderr(msge)
+
+
+class OP_Mongodb(OP_Self):
+    def __init__(self, login: str, db: str, cl: str, subject: str, only_when_error=False,
+                 OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        """Login command: "mongodb://user:pwd@host:port/"  """
+        OP_Self.__init__(self, OP_level, fmt)
+        self.login = login
+        self.db = db
+        self.cl = cl
+        self.subject = subject
+        self.only_when_error = only_when_error
+        self.stttime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。一次性写入。"""
+        if (not self.only_when_error) or (sys.exc_info()[0] is not None):
+            val = {
+                "Subject": self.subject,
+                "SttTime": self.stttime,
+                "EndTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            if sys.exc_info()[0] is None:
+                val["Status"] = "ok"
+                val["Log"] = self.read()
+            else:
+                val["Status"] = "err"
+                status = "Status: Failed!!\n" + ''.join(traceback.format_exception(*sys.exc_info())) + "-" * 100 + "\n"
+                val["Log"] = status + self.read()
+            try:
+                from pymongo import MongoClient
+                with MongoClient(self.login) as mgdb:
+                    mgcl = mgdb[self.db][self.cl]
+                    mgcl.insert_one(val)
+            except Exception as e:
+                OP_Sys.write_stderr(str(e))
 
 
 class OP_Sys(_OP_base):
@@ -292,9 +328,13 @@ class Logger(IP_Self):
 
     def add_op_email(self, account: str, password: str, server_addr: str, name: str,
                      subject: str, to_account: Union[str, List[str]], only_when_error=False,
-                     OP_level: Union[str, int] = "all", fmt: str = FMT['info']):
+                     OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
         return self._add_op(OP_Email, account, password, server_addr, name, subject, to_account, only_when_error,
                             OP_level, fmt)
+
+    def add_op_mongodb(self, login: str, db: str, cl: str, subject: str, only_when_error=False,
+                       OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        return self._add_op(OP_Mongodb, login, db, cl, subject, only_when_error, OP_level, fmt, *args, **kwargs)
 
     # Adding Inputers ------------------------------
     def add_ip_sys(self, target_level: Dict = None):
