@@ -228,6 +228,56 @@ class OP_Mongodb(OP_Self):
                 OP_Sys.write_stderr(str(e))
 
 
+class OP_DingtalkRobot(OP_Self):
+    def __init__(self, token: str, subject: str, atMobiles: List[str] = None, at_only_when_error=True,
+                 only_when_error=False, OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        """Login command: "mongodb://user:pwd@host:port/"  """
+        OP_Self.__init__(self, OP_level, fmt)
+        self.token = token
+        self.subject = subject
+        self.atMobiles = atMobiles
+        self.at_only_when_error = at_only_when_error
+        self.only_when_error = only_when_error
+        self.stttime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。一次性写入。"""
+        if (not self.only_when_error) or (sys.exc_info()[0] is not None):
+            val = [
+                ["Status", ""],  # 0
+                ("Subject", self.subject),  # 1
+                ("SttTime", self.stttime),  # 2
+                ("EndTime", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),  # 3
+                ["Log", ""],  # 4
+            ]
+            if sys.exc_info()[0] is None:
+                val[0][1] = "ok"
+                val[4][1] = self.read()
+            else:
+                val[0][1] = "err"
+                status = "Status: Failed!!\n" + ''.join(traceback.format_exception(*sys.exc_info())) + "-" * 100 + "\n"
+                val[4][1] = status + self.read()
+            try:
+                import requests
+                data = {
+                    "msgtype": "text",
+                    "text": {
+                        "content": "%s\nStart at: %s\nEnd at: %s\n%s" % (
+                            "<%s> [%s]" % (val[0][1], val[1][1]), val[2][1], val[3][1], val[4][1])},
+                }
+                if self.atMobiles:
+                    if val[0][1] == "ok" and self.at_only_when_error:
+                        pass
+                    else:
+                        if self.atMobiles == ["all"]:
+                            data["at"] = {"isAtAll": "true"}
+                        else:
+                            data["at"] = {"atMobiles": self.atMobiles, "isAtAll": "false"}
+                requests.post(url=self.token, json=data)
+            except Exception as e:
+                OP_Sys.write_stderr(str(e))
+
+
 class OP_Sys(_OP_base):
     def write(self, msg: Msg):
         if msg.IP_level >= self.OP_level:
@@ -335,6 +385,12 @@ class Logger(IP_Self):
     def add_op_mongodb(self, login: str, db: str, cl: str, subject: str, only_when_error=False,
                        OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
         return self._add_op(OP_Mongodb, login, db, cl, subject, only_when_error, OP_level, fmt, *args, **kwargs)
+
+    def add_op_dingrobot(self, token: str, subject: str, atMobiles: List[str] = None, at_only_when_error=True,
+                         only_when_error=False,
+                         OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        return self._add_op(OP_DingtalkRobot, token, subject, atMobiles, at_only_when_error, only_when_error, OP_level,
+                            fmt, *args, **kwargs)
 
     # Adding Inputers ------------------------------
     def add_ip_sys(self, target_level: Dict = None):

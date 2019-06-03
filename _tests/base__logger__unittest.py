@@ -17,6 +17,7 @@ from lewintools.base.logging import Logger, IP_Sys
 from _tests._config import Environment, config_path
 from Lewin_Keys import Email_Account_monitor163 as Email_Account
 from Lewin_Keys import MongoDB as MongoDB_Account
+from Lewin_Keys import Ding_Robots
 
 TEST_DIR = config_path["dir__base__logging"]
 
@@ -258,6 +259,7 @@ class Test__Lewin_Logging__email:
         except:
             pass
 
+
 class Test__Lewin_Logging__mongodb:
     def main(self):
         tests = [attr for attr in self.__dir__() if attr.startswith("test__")]
@@ -268,7 +270,7 @@ class Test__Lewin_Logging__mongodb:
     @classmethod
     def test__mongodb__common(cls):
         print("you should see +1 document in MongoDB.")
-        with Logger().add_op_mongodb(**MongoDB_Account, subject="common",only_when_error=False) as logger:
+        with Logger().add_op_mongodb(**MongoDB_Account, subject="common", only_when_error=False) as logger:
             logger.info("Hello!")
 
     @classmethod
@@ -288,11 +290,45 @@ class Test__Lewin_Logging__mongodb:
         except:
             pass
 
+
+class Test__Lewin_Logging__DingtalkRobot:
+    def main(self):
+        tests = [attr for attr in self.__dir__() if attr.startswith("test__")]
+        with Breaker():
+            for t in tests:
+                getattr(self, t)()
+
+    @classmethod
+    def test__dingrobot__common(cls):
+        print("you should see +1 msg in Dingtalk.")
+        with Logger().add_op_dingrobot(Ding_Robots["TestRobot01"], subject="common") as logger:
+            logger.info("Hello!")
+
+    @classmethod
+    def test__dingrobot__big_log(cls):
+        print("you should see +1 msg in Dingtalk.")
+        with Logger().add_op_dingrobot(Ding_Robots["TestRobot01"], subject="big") as logger:
+            for i in range(100):
+                logger.info("Hello!")
+
+    @classmethod
+    def test__dingrobot__error(cls):
+        print("you should see +1 msg in Dingtalk.")
+        try:
+            with Logger().add_op_dingrobot(Ding_Robots["TestRobot01"], subject="test error",
+                                           atMobiles=["all"]) as logger:
+                logger.info("Hello!")
+                raise Exception("Raise Exception! you should see this Log!")
+        except:
+            pass
+
+
 # ————————————————————————— Main ———————————————————————————————
 if __name__ == "__main__":
-    with Environment(TEST_DIR):
-        Test__Lewin_Logging__hand().main()
-
-        unittest.main()
+    # with Environment(TEST_DIR):
+    #     Test__Lewin_Logging__hand().main()
+    #
+    #     unittest.main()
     # Test__Lewin_Logging__email().main()
     # Test__Lewin_Logging__mongodb().main()
+    Test__Lewin_Logging__DingtalkRobot().main()
