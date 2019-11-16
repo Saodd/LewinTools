@@ -59,7 +59,7 @@ class Test__Lewin_Findfiles(unittest.TestCase):
         self.assertEqual(want, result)
 
     def test__find_all__None(self):
-        result = self.wsp.find_all(prefix="Test_", fmt="%Y", postfix="\\.testfile", warning=False)
+        result = self.wsp.find_all(prefix="Test_", fmt="%Y", postfix="\\.testfile")
         self.assertEqual([], result)
 
     # ——————————————————— find_lastone() —————————————————————
@@ -175,7 +175,7 @@ class Test__Lewin_Findfiles(unittest.TestCase):
                                           before=(arg_dt - timedelta(9)), move_to=None)
         files_after = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
         # test
-        self.assertEqual(files_archived, [[path_file, ""]])
+        self.assertEqual(files_archived, [(path_file, None)])
         self.assertEqual(files_before, files_after)
 
     def test__archive__move(self):
@@ -193,7 +193,7 @@ class Test__Lewin_Findfiles(unittest.TestCase):
                                           before=(arg_dt - timedelta(11)), move_to="./archive")
         files_after = self.wsp.find_all(prefix="Test_", fmt=arg_fmt, postfix="\\.testfile")
         # test
-        self.assertEqual(files_archived, [[path_file, path_file_new]])
+        self.assertEqual(files_archived, [(path_file, path_file_new)])
         self.assertEqual(files_before, files_after)
         shutil.rmtree(os.path.join(TEST_DIR, "archive"))
 
@@ -244,7 +244,6 @@ def test_in_file():
             logger.error("Failed when creating file: %s" % Environment.path_test_py)
         else:
             logger.info("Created file: %s" % Environment.path_test_py)
-        logger.info(" Finished preparing environment ".center(100, '-'))
         logger.info(" Finished preparing environment ".center(100, '-'))
         time.sleep(0.5)  # Special for Pycharm. Coz stderr seems bad in Pycharm-windows.
 

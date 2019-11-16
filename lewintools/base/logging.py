@@ -4,12 +4,19 @@ __author__ = 'lewin'
 __create_date__ = '2019/4/10'
 __all__ = ["Logger", "Logger_Easy", "Logger_Easy_Time", "Logger_Jack", "Null"]
 """
+----Logger主要实现逻辑：
+    1.输入对象(sys, self)：将logging信息封装为一个Msg实例。
+    2.主体：负责管理和分发。
+    3.输出对象(sys, self[.read()], file, email)：将Msg实例按预先设定的格式输出到相应的位置（屏幕/文件/发送邮件/自身储存）。
 
+----示例用法请参见_tests(或者_examples)文件夹。
 """
 
-import os, sys, time, re, _io
-from datetime import datetime, timedelta
-from typing import Union, List, Tuple, Dict
+import os
+import sys
+import traceback
+from datetime import datetime
+from typing import Union, List, Dict, ClassVar
 
 IP_Level_dic = {'all': 6, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 0}
 OP_Level_dic = {'all': 0, 'debug': 1, 'info': 2, 'warning': 3, 'error': 4, 'critical': 5, "none": 6}
@@ -21,7 +28,7 @@ FMT = {"none": "%(message)s",
        'multiprocess': "[%(levelname)s][%(time)s][PID:%(processid)s] %(message)s"}
 
 
-# ————————————————————————————————————————————————————————
+# ----------------------------- Logger ------------------------------------
 def _translate_op_level(OP_level) -> int:
     if isinstance(OP_level, str):
         return OP_Level_dic[OP_level.lower()]
@@ -49,7 +56,7 @@ class Msg:
     def __str__(self) -> str:
         return str(self.message) + str(self.end)
 
-    def translate(self, fmt: str):
+    def translate(self, fmt: str) -> str:
         if self.title is None:
             return fmt % self.__dict__ + "%s" % self.end
         else:
@@ -60,7 +67,7 @@ class IP_Self:
     def write(self, msg: Msg) -> None:
         pass
 
-    def fulsh(self) -> None:
+    def flush(self) -> None:
         pass
 
     def debug(self, message, title=None, end="\n"):
@@ -100,19 +107,19 @@ class IP_Sys:
     def direct_write(self, txt: str):
         self.keeper.write(txt)
 
-    def direct_fulsh(self):
+    def direct_flush(self):
         self.keeper.flush()
 
     def write(self, txt: str):
         """ take the place of builtins.print """
         if txt != "\n":
-            self.logger.write(Msg(self.IP_level_name, None, txt, "\n"))
+            self.logger.write(Msg(self.IP_level_name, "", txt, "\n"))
 
     def flush(self):
         self.logger.flush()
 
 
-class OP_sys:
+class _OP_base:
     def __init__(self, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
         self.OP_level = _translate_op_level(OP_level)
         self.fmt = fmt
@@ -121,21 +128,196 @@ class OP_sys:
         pass
 
     def write(self, msg: Msg):
+        pass
+
+    def flush(self):
+        pass
+
+
+class OP_Self(_OP_base):
+    def __init__(self, OP_level: Union[str, int] = "all", fmt: str = FMT['simple']):
+        _OP_base.__init__(self, OP_level, fmt)
+        self.store = []
+
+    def myclear(self):
+        self.store = []
+
+    def write(self, msg: Msg):
+        if msg.IP_level >= self.OP_level:
+            self.store.append(msg.translate(self.fmt))
+
+    def read(self) -> str:
+        return "".join(self.store)
+
+
+class OP_File(OP_Self):
+    def __init__(self, file_path: str, OP_level: Union[str, int] = "all", fmt: str = FMT['info']):
+        OP_Self.__init__(self, OP_level, fmt)
+        self.file_path = file_path
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。一次性写入有助于提高性能。"""
+        try:
+            with open(self.file_path, "a") as f:
+                f.write(self.read())
+        except Exception as e:
+            OP_Sys.write_stderr(str(e))
+
+
+class OP_Email(OP_Self):
+    def __init__(self, account: str, password: str, server_addr: str, name: str,
+                 subject: str, to_account: Union[str, List[str]], only_when_error=False,
+                 OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        OP_Self.__init__(self, OP_level, fmt)
+        self.login = [account, password, server_addr, 465, name]
+        self.subject = subject
+        self.to_account = to_account
+        self.only_when_error = only_when_error
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。"""
+        if (not self.only_when_error) or (sys.exc_info()[0] is not None):
+            if sys.exc_info()[0] is None:
+                status = "Status: Success! Logger is clearing without Exception.\n" + "-" * 100 + "\n"
+            else:
+                status = "Status: Failed!!\n" + ''.join(traceback.format_exception(*sys.exc_info())) + "-" * 100 + "\n"
+            try:
+                from lewintools.pro.email import Outbox
+                outbox = Outbox()
+                outbox.login_ssl(*self.login)
+                msg = outbox.write_MIMEtext_text(self.subject, status + self.read(), self.to_account)
+                outbox.send_MIMEtext(self.to_account, msg)
+            except Exception as e:
+                msge = "Logger failed when sending eamil : %s. \n" % str(e)
+                OP_Sys.write_stderr(msge)
+
+
+class OP_Mongodb(OP_Self):
+    def __init__(self, login: str, db: str, cl: str, subject: str, only_when_error=False,
+                 OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        """Login command: "mongodb://user:pwd@host:port/"  """
+        OP_Self.__init__(self, OP_level, fmt)
+        self.login = login
+        self.db = db
+        self.cl = cl
+        self.subject = subject
+        self.only_when_error = only_when_error
+        self.stttime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。一次性写入。"""
+        if (not self.only_when_error) or (sys.exc_info()[0] is not None):
+            val = {
+                "Subject": self.subject,
+                "SttTime": self.stttime,
+                "EndTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            if sys.exc_info()[0] is None:
+                val["Status"] = "ok"
+                val["Log"] = self.read()
+            else:
+                val["Status"] = "err"
+                status = "Status: Failed!!\n" + ''.join(traceback.format_exception(*sys.exc_info())) + "-" * 100 + "\n"
+                val["Log"] = status + self.read()
+            try:
+                from pymongo import MongoClient
+                with MongoClient(self.login) as mgdb:
+                    mgcl = mgdb[self.db][self.cl]
+                    mgcl.insert_one(val)
+            except Exception as e:
+                OP_Sys.write_stderr(str(e))
+
+
+class OP_DingtalkRobot(OP_Self):
+    def __init__(self, token: str, subject: str, atMobiles: List[str] = None, at_only_when_error=True,
+                 only_when_error=False, OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        """Login command: "mongodb://user:pwd@host:port/"  """
+        OP_Self.__init__(self, OP_level, fmt)
+        self.token = token
+        self.subject = subject
+        self.atMobiles = atMobiles
+        self.at_only_when_error = at_only_when_error
+        self.only_when_error = only_when_error
+        self.stttime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def myclear(self):
+        """这里不能让程序崩溃了，使用try。一次性写入。"""
+        if (not self.only_when_error) or (sys.exc_info()[0] is not None):
+            val = [
+                ["Status", ""],  # 0
+                ("Subject", self.subject),  # 1
+                ("SttTime", self.stttime),  # 2
+                ("EndTime", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),  # 3
+                ["Log", ""],  # 4
+            ]
+            if sys.exc_info()[0] is None:
+                val[0][1] = "ok"
+                val[4][1] = self.read()
+            else:
+                val[0][1] = "err"
+                status = "Status: Failed!!\n" + ''.join(traceback.format_exception(*sys.exc_info())) + "-" * 100 + "\n"
+                val[4][1] = status + self.read()
+            try:
+                import requests
+                data = {
+                    "msgtype": "text",
+                    "text": {
+                        "content": "%s\nStart at: %s\nEnd at: %s\n%s" % (
+                            "<%s> [%s]" % (val[0][1], val[1][1]), val[2][1], val[3][1], val[4][1])},
+                }
+                if self.atMobiles:
+                    if val[0][1] == "ok" and self.at_only_when_error:
+                        pass
+                    else:
+                        if self.atMobiles == ["all"]:
+                            data["at"] = {"isAtAll": "true"}
+                        else:
+                            data["at"] = {"atMobiles": self.atMobiles, "isAtAll": "false"}
+                requests.post(url=self.token, json=data)
+            except Exception as e:
+                OP_Sys.write_stderr(str(e))
+
+
+class OP_Sys(_OP_base):
+    def write(self, msg: Msg):
         if msg.IP_level >= self.OP_level:
             if hasattr(sys.stdout, "direct_write"):
                 getattr(sys.stdout, "direct_write")(msg.translate(self.fmt))
             else:
                 getattr(sys.stdout, "write")(msg.translate(self.fmt))
 
-    def flush(self, msg: Msg):
-        if hasattr(sys.stdout, "direct_fulsh"):
-            getattr(sys.stdout, "direct_fulsh")(msg.translate(self.fmt))
+    def flush(self):
+        if hasattr(sys.stdout, "direct_flush"):
+            getattr(sys.stdout, "direct_flush")()
         else:
-            getattr(sys.stdout, "flush")(msg.translate(self.fmt))
+            getattr(sys.stdout, "flush")()
+
+    @staticmethod
+    def write_stderr(txt):
+        OP_Sys._direct(sys.stderr, "write", txt)
+
+    @staticmethod
+    def flush_stderr():
+        OP_Sys._direct(sys.stderr, "flush")
+
+    @staticmethod
+    def write_stdout(txt):
+        OP_Sys._direct(sys.stdout, "write", txt)
+
+    @staticmethod
+    def flush_stdout():
+        OP_Sys._direct(sys.stdout, "flush")
+
+    @staticmethod
+    def _direct(target, method, *args):
+        if hasattr(target, "direct_" + method):
+            getattr(target, "direct_" + method)(*args)
+        else:
+            getattr(target, method)(*args)
 
 
 class Logger(IP_Self):
-    __date__ = "20190503"
+    __date__ = "20190505"
 
     def __init__(self, name: str = None):
         if name is None:
@@ -166,9 +348,9 @@ class Logger(IP_Self):
         for OP in self.OPs:
             OP.write(msg)
 
-    def fulsh(self) -> None:
+    def flush(self) -> None:
         for OP in self.OPs:
-            OP.fulsh()
+            OP.flush()
 
     def myclear(self) -> None:
         if not self.cleared:
@@ -179,26 +361,36 @@ class Logger(IP_Self):
                     print(e)
             self.cleared = True
 
-    # special output stderr -------------------------------
-    def write_stderr(self, txt:str, end="\n", flush=False):
-        txt += end
-        if hasattr(sys.stderr, "direct_write"):
-            getattr(sys.stderr, "direct_write")(txt)
-        else:
-            getattr(sys.stderr, "write")(txt)
-        if flush:
-            if hasattr(sys.stderr, "direct_flush"):
-                getattr(sys.stderr, "direct_flush")(txt)
-            else:
-                getattr(sys.stderr, "flush")(txt)
-
     # Adding Outputers ------------------------------
-    def add_op_sys(self, level="all", fmt: str = FMT['simple']):
-        if [OP for OP in self.OPs if isinstance(OP, IP_Sys)]:
-            pass
-        else:
-            self.OPs.append(OP_sys(level, fmt))
+    def _add_op(self, cls: ClassVar, *args, **kwargs):
+        if not self.get_op_instances(cls):
+            self.OPs.append(cls(*args, **kwargs))
         return self
+
+    def add_op_sys(self, level="all", fmt: str = FMT['simple']):
+        return self._add_op(OP_Sys, level, fmt)
+
+    def add_op_self(self, level="all", fmt: str = FMT['simple']):
+        return self._add_op(OP_Self, level, fmt)
+
+    def add_op_file(self, file_path: str, level="all", fmt: str = FMT['simple']):
+        return self._add_op(OP_File, file_path, level, fmt)
+
+    def add_op_email(self, account: str, password: str, server_addr: str, name: str,
+                     subject: str, to_account: Union[str, List[str]], only_when_error=False,
+                     OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        return self._add_op(OP_Email, account, password, server_addr, name, subject, to_account, only_when_error,
+                            OP_level, fmt)
+
+    def add_op_mongodb(self, login: str, db: str, cl: str, subject: str, only_when_error=False,
+                       OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        return self._add_op(OP_Mongodb, login, db, cl, subject, only_when_error, OP_level, fmt, *args, **kwargs)
+
+    def add_op_dingrobot(self, token: str, subject: str, atMobiles: List[str] = None, at_only_when_error=True,
+                         only_when_error=False,
+                         OP_level: Union[str, int] = "all", fmt: str = FMT['info'], *args, **kwargs):
+        return self._add_op(OP_DingtalkRobot, token, subject, atMobiles, at_only_when_error, only_when_error, OP_level,
+                            fmt, *args, **kwargs)
 
     # Adding Inputers ------------------------------
     def add_ip_sys(self, target_level: Dict = None):
@@ -211,9 +403,39 @@ class Logger(IP_Self):
                 self.IPs.append(IP_Sys(self, target, level))
         return self
 
+    # manager -------------------------------
+    def get_ip_instances(self, cls: ClassVar) -> list:
+        return [IP for IP in self.IPs if isinstance(IP, cls)]
 
-# ————————————————————————————————————————————————————————
+    def get_op_instances(self, cls: ClassVar) -> list:
+        return [OP for OP in self.OPs if isinstance(OP, cls)]
+
+    # special attribution -------------------------------
+    def write_stderr(self, txt):
+        OP_Sys.write_stderr(txt)
+
+    def print_exception(self) -> None:
+        except_info = ''.join(traceback.format_exception(*sys.exc_info()))
+        sys.stderr.write(except_info)
+        sys.stderr.flush()
+
+    def print_hello(self) -> None:
+        filename = "%s" % sys._getframe(1).f_code.co_filename
+        self.write(Msg("all", "", filename.center(100, "-"), "\n"))
+
+    def read(self) -> Union[str, List[str]]:
+        ins = self.get_op_instances(OP_Self)
+        if len(ins) == 1:
+            return ins[0].read()
+        elif len(ins) == 0:
+            raise Exception("The logger have no OP_Self instance, so cant read().")
+        else:
+            return [i.read() for i in ins]
+
+
+# ----------------------------- Other simple Logger ------------------------------------
 class Logger_Easy:
+    """很简单的logger，只调用了print，只是增加了levelname。"""
     __date__ = "2019.04.10"
 
     def debug(self, s):
@@ -240,6 +462,7 @@ class Logger_Easy:
 
 
 class Logger_Easy_Time:
+    """很简单的logger，只调用了print，只是增加了levelname和时间。"""
     __date__ = "2019.04.10"
 
     def debug(self, s):
@@ -260,10 +483,13 @@ class Logger_Easy_Time:
 
 class Logger_Jack:
     """
-    Kidnap sys.stdout&sys.stderr, so is able to intercept prints.
+    Kidnap sys.stdout&sys.stderr, so is able to intercept prints. Then you can do anything on those loggings.
+    ----捕获sys.std，可以截取所有企图通过print输出的信息，并保存在自身实例中，需要时可以读取。
+
+    example用法：
     with Easy_Jack() as logger:
         # do something ...
-        loggings = logger.text
+        return logger.text
     """
     __date__ = "2019.04.10"
 
@@ -293,6 +519,7 @@ class Logger_Jack:
 
 
 class Null:
+    """安全地无视一切调用的终极哑巴对象。用于其他模块中作为默认logger（即默认不输出任何信息）。"""
     __date__ = "20190502"
 
     def __getattr__(self, item):
